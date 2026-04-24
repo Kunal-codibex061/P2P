@@ -62,6 +62,14 @@ export default function RenterDashboardPage() {
         <section className="rounded-3xl border border-slate-200 bg-white p-6">
           <h1 className="text-2xl font-bold text-slate-900">Renter Dashboard</h1>
           <p className="mt-1 text-sm text-slate-600">Track all your requests, active rentals, and completed bookings.</p>
+          <div className="mt-3">
+            <Link
+              href="/requested-items"
+              className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            >
+              Open Requested Items
+            </Link>
+          </div>
         </section>
 
         <section className="space-y-3">

@@ -17,7 +17,10 @@ export default function ListingsPage() {
     if (!params.get("availability")) {
       params.set("availability", "available");
     }
-    setQueryString(params.toString());
+    const timer = window.setTimeout(() => {
+      setQueryString(params.toString());
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const listingsQuery = useQuery({

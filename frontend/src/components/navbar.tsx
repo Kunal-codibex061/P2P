@@ -8,6 +8,7 @@ import {
   Building2,
   ChevronDown,
   CircleUserRound,
+  ClipboardList,
   Handshake,
   MessageCircle,
   Shield,
@@ -23,7 +24,8 @@ export function Navbar() {
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setProfileOpen(false);
+    const timer = window.setTimeout(() => setProfileOpen(false), 0);
+    return () => window.clearTimeout(timer);
   }, [pathname]);
 
   useEffect(() => {
@@ -94,6 +96,13 @@ export function Navbar() {
                   >
                     <CircleUserRound className="h-4 w-4 text-slate-500" />
                     My Requests
+                  </Link>
+                  <Link
+                    href="/requested-items"
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                  >
+                    <ClipboardList className="h-4 w-4 text-slate-500" />
+                    Requested Items
                   </Link>
                   <Link
                     href="/dashboard/lender"

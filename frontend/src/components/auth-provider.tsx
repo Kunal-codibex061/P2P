@@ -71,6 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.removeQueries({ queryKey: ["conversations"] });
     queryClient.removeQueries({ queryKey: ["my-listings"] });
     queryClient.removeQueries({ queryKey: ["listing-requests"] });
+    queryClient.removeQueries({ queryKey: ["item-requests"] });
+    queryClient.removeQueries({ queryKey: ["lender-open-requests"] });
   }, [queryClient]);
 
   useEffect(() => {

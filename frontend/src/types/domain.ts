@@ -12,6 +12,21 @@ export type RequestStatus =
   | "disputed"
   | "cancelled";
 
+export type ItemRequestStatus =
+  | "open"
+  | "responded"
+  | "chatting"
+  | "accepted"
+  | "confirmed"
+  | "active"
+  | "completed"
+  | "cancelled"
+  | "expired"
+  | "requested"
+  | "rejected";
+
+export type RequestKind = "listing_request" | "open_request";
+
 export interface User {
   _id: string;
   name: string;
@@ -70,6 +85,55 @@ export interface RentalRequest {
   expiresAt: string;
 }
 
+export interface OpenRequestResponse {
+  _id: string;
+  itemRequestId: ItemRequest | string;
+  lenderId: User | string;
+  listingId?: Listing | string | null;
+  message: string;
+  proposedRent: number;
+  proposedDeposit: number;
+  status: "sent" | "accepted" | "rejected" | "chatting";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ItemRequest {
+  _id: string;
+  sourceRequestId?: string;
+  requesterId: User | string;
+  lenderId?: User | string | null;
+  listingId?: Listing | string | null;
+  type: RequestKind;
+  title: string;
+  category: string;
+  subcategory?: string;
+  purpose: string;
+  startDate: string;
+  endDate: string;
+  budgetAmount: number;
+  budgetUnit: "day" | "week" | "month" | "total";
+  depositPreference: "none" | "upto_1000" | "upto_5000" | "flexible";
+  pickupDeliveryPreference: "pickup" | "delivery" | "either";
+  pickupPreference?: "pickup" | "delivery" | "either";
+  city: string;
+  locality: string;
+  radiusKm: 2 | 5 | 10 | 999;
+  message: string;
+  urgency: "today" | "this_week" | "flexible";
+  kycWillingness: boolean;
+  referenceImageUrl?: string;
+  status: ItemRequestStatus;
+  responseCount: number;
+  conversationCount?: number;
+  primaryConversationId?: string | null;
+  quotedRent?: number;
+  depositAmount?: number;
+  createdAt: string;
+  updatedAt?: string;
+  expiresAt?: string;
+}
+
 export interface Message {
   senderId: string;
   text: string;
@@ -79,8 +143,9 @@ export interface Message {
 
 export interface Conversation {
   _id: string;
-  requestId: RentalRequest | string;
-  listingId: Listing | string;
+  requestId?: RentalRequest | string | null;
+  itemRequestId?: ItemRequest | string | null;
+  listingId?: Listing | string | null;
   renterId: User | string;
   lenderId: User | string;
   messages: Message[];

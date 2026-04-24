@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LifecycleStepper } from "@/components/ui/lifecycle-stepper";
 import { RequestStatusActions } from "@/components/request-status-actions";
+import { LenderOpenRequestsPanel } from "@/components/lender-open-requests-panel";
 import { api } from "@/lib/api";
 import { LISTING_IMAGE_FALLBACK_URL } from "@/lib/config";
 import { formatCurrency, shortDate, titleCase } from "@/lib/utils";
@@ -126,6 +127,10 @@ export default function LenderDashboardPage() {
               })}
             </div>
           )}
+        </section>
+
+        <section className="space-y-3 pb-8">
+          <LenderOpenRequestsPanel />
         </section>
       </div>
     </RequireAuth>

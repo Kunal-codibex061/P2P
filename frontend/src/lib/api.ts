@@ -57,6 +57,7 @@ export const api = {
     request<T>(path, "PUT", { body, token }),
   patch: <T>(path: string, body?: unknown, token?: string | null) =>
     request<T>(path, "PATCH", { body, token }),
+  delete: <T>(path: string, token?: string | null) => request<T>(path, "DELETE", { token }),
 };
 
 export { ApiError };

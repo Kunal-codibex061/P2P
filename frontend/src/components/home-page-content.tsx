@@ -76,7 +76,8 @@ export function HomePageContent() {
 
   useEffect(() => {
     const next = filtersFromParams(new URLSearchParams(searchParams.toString()));
-    setFilters(next);
+    const frame = requestAnimationFrame(() => setFilters(next));
+    return () => cancelAnimationFrame(frame);
   }, [searchParams]);
 
   useEffect(() => {

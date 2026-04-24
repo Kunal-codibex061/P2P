@@ -12,7 +12,8 @@ import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
 import { formatCurrency, getId, shortDate, titleCase } from "@/lib/utils";
-import type { Conversation, Listing, RentalRequest, User } from "@/types/domain";
+import type { Conversation, ItemRequest, Listing, RentalRequest, User } from "@/types/domain";
+import { RequestTimeline } from "./request-timeline";
 
 const quickActions = [
   "Is this available?",
@@ -47,6 +48,7 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
   const selectedConversation = conversationDetailQuery.data?.data;
 
   const request = selectedConversation?.requestId as RentalRequest | undefined;
+  const itemRequest = selectedConversation?.itemRequestId as ItemRequest | undefined;
   const listing = selectedConversation?.listingId as Listing | undefined;
 
   const sendMessage = useMutation({
@@ -94,6 +96,7 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                     ? (conversation.lenderId as User)
                     : (conversation.renterId as User);
                 const itemListing = conversation.listingId as Listing;
+                const openRequest = conversation.itemRequestId as ItemRequest | undefined;
                 return (
                   <button
                     key={conversation._id}
@@ -112,7 +115,9 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                       />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-900">{other.name}</p>
-                        <p className="truncate text-xs text-slate-500">{itemListing.title}</p>
+                        <p className="truncate text-xs text-slate-500">
+                          {itemListing?.title || openRequest?.title || "Open request conversation"}
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -123,7 +128,7 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
         </aside>
 
         <section className="space-y-4">
-          {!selectedConversation || !request || !listing ? (
+          {!selectedConversation ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-8">
               <EmptyState
                 title="Select a conversation"
@@ -135,32 +140,53 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
               <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{listing.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {shortDate(request.startDate)} - {shortDate(request.endDate)} ·{" "}
-                      {titleCase(request.pickupPreference)}
+                    <p className="text-sm font-semibold text-slate-900">
+                      {listing?.title || itemRequest?.title || "Conversation"}
                     </p>
+                    {request ? (
+                      <p className="text-xs text-slate-500">
+                        {shortDate(request.startDate)} - {shortDate(request.endDate)} ·{" "}
+                        {titleCase(request.pickupPreference)}
+                      </p>
+                    ) : itemRequest ? (
+                      <p className="text-xs text-slate-500">
+                        {shortDate(itemRequest.startDate)} - {shortDate(itemRequest.endDate)} ·{" "}
+                        {titleCase(itemRequest.pickupDeliveryPreference)}
+                      </p>
+                    ) : null}
                   </div>
-                  <Link
-                    href={`/listings/${listing._id}`}
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
-                  >
-                    View Listing
-                  </Link>
+                  {listing?._id ? (
+                    <Link
+                      href={`/listings/${listing._id}`}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                    >
+                      View Listing
+                    </Link>
+                  ) : null}
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-xl bg-slate-50 p-2 text-sm">
-                    Rent: <strong>{formatCurrency(request.quotedRent)}</strong>
+                    Rent:{" "}
+                    <strong>
+                      {formatCurrency(request?.quotedRent || itemRequest?.budgetAmount || 0)}
+                    </strong>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-2 text-sm">
-                    Deposit: <strong>{formatCurrency(request.depositAmount)}</strong>
+                    Deposit:{" "}
+                    <strong>
+                      {formatCurrency(request?.depositAmount || 0)}
+                    </strong>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-2 text-sm">
-                    Status: <strong>{titleCase(request.status)}</strong>
+                    Status: <strong>{titleCase(request?.status || itemRequest?.status || "open")}</strong>
                   </div>
                 </div>
                 <div className="mt-3">
-                  <LifecycleStepper status={request.status} />
+                  {request ? (
+                    <LifecycleStepper status={request.status} />
+                  ) : itemRequest ? (
+                    <RequestTimeline status={itemRequest.status} />
+                  ) : null}
                 </div>
               </div>
 
