@@ -7,6 +7,7 @@ import { categoryImageMap } from "@/lib/category-media";
 import type { Category } from "@/types/domain";
 
 export default function ExplorePage() {
+  const categoryFallback = "/images/categories/furniture.jpg";
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
     queryFn: () => api.get<{ categories: Category[]; collections: string[] }>("/api/categories"),
@@ -38,6 +39,10 @@ export default function ExplorePage() {
                     src={categoryImage?.imageUrl}
                     alt={categoryImage?.alt || category.label}
                     className="h-full w-full object-cover transition group-hover:scale-105"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = categoryFallback;
+                    }}
                   />
                 </div>
                 <p className="text-center text-sm font-medium text-slate-900">{category.label}</p>
@@ -49,4 +54,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-

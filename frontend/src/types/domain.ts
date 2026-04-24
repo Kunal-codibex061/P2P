@@ -161,4 +161,20 @@ export interface Category {
   label: string;
   icon: string;
   subcategories: string[];
+  filterSpecs?: string[];
+}
+
+export interface FacetOption {
+  value: string;
+  count: number;
+}
+
+export interface ListingFacets {
+  priceRange: { min: number; max: number } | null;
+  subcategories: FacetOption[];
+  conditions: FacetOption[];
+  cities: FacetOption[];
+  localities: FacetOption[];
+  rentUnits: FacetOption[];
+  specifications: Record<string, FacetOption[]>;
 }
