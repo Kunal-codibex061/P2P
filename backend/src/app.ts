@@ -1,6 +1,7 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
+import path from "path";
 import authRoutes from "./routes/auth";
 import categoriesRoutes from "./routes/categories";
 import listingsRoutes from "./routes/listings";
@@ -11,6 +12,7 @@ import userRoutes from "./routes/users";
 import kycRoutes from "./routes/kyc";
 import adminRoutes from "./routes/admin";
 import lenderRoutes from "./routes/lender";
+import uploadRoutes from "./routes/uploads";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 
 dotenv.config();
@@ -24,6 +26,7 @@ app.use(
   }),
 );
 app.use(express.json({ limit: "1mb" }));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "backend", timestamp: new Date().toISOString() });
@@ -39,6 +42,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/kyc", kycRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/lender", lenderRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
