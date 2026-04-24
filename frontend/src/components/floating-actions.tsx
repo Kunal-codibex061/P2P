@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MessageCircle, Plus } from "lucide-react";
+import { ClipboardPlus, MessageCircle, Plus, SearchCode } from "lucide-react";
 import { useAuth } from "./auth-provider";
 import { RequestItemWizard } from "./request-item-wizard";
 import { useEffect, useRef, useState } from "react";
@@ -73,15 +73,16 @@ export function FloatingActions() {
           className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-50 flex flex-col items-end gap-2"
         >
           {fabMenuOpen && (
-            <div className="w-44 space-y-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+            <div className="animate-fab-pop w-52 space-y-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-2xl backdrop-blur">
               <button
                 type="button"
                 onClick={() => {
                   setFabMenuOpen(false);
                   router.push("/listings/new");
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
               >
+                <ClipboardPlus className="h-4 w-4 text-slate-500" />
                 List Item
               </button>
               <button
@@ -90,8 +91,9 @@ export function FloatingActions() {
                   setFabMenuOpen(false);
                   setOpenRequestWizard(true);
                 }}
-                className="w-full rounded-xl bg-slate-900 px-3 py-2 text-left text-sm font-medium text-white hover:bg-slate-700"
+                className="flex w-full items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-left text-sm font-medium text-white transition hover:bg-slate-700"
               >
+                <SearchCode className="h-4 w-4 text-slate-200" />
                 Request Item
               </button>
             </div>
@@ -103,7 +105,7 @@ export function FloatingActions() {
             onClick={() => setFabMenuOpen((prev) => !prev)}
             className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:bg-slate-700"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className={`h-5 w-5 transition-transform duration-200 ${fabMenuOpen ? "rotate-45" : ""}`} />
           </button>
         </div>
       )}

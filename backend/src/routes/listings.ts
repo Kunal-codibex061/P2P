@@ -40,6 +40,10 @@ function normalizePricingOptions(options: Array<{ unit: "day" | "week" | "month"
   return Array.from(byUnit.values());
 }
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 router.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -69,11 +73,23 @@ router.get(
     if (verifiedOnly === "true") query.isVerifiedOwner = true;
     if (deliveryAvailable === "true") query.deliveryAvailable = true;
     if (q) {
-      query.$or = [
-        { title: { $regex: String(q), $options: "i" } },
-        { description: { $regex: String(q), $options: "i" } },
-        { subcategory: { $regex: String(q), $options: "i" } },
-      ];
+      const tokens = String(q)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 8)
+        .map((token) => escapeRegex(token));
+
+      if (tokens.length > 0) {
+        query.$and = tokens.map((token) => ({
+          $or: [
+            { title: { $regex: token, $options: "i" } },
+            { description: { $regex: token, $options: "i" } },
+            { subcategory: { $regex: token, $options: "i" } },
+            { category: { $regex: token, $options: "i" } },
+          ],
+        }));
+      }
     }
     if (minPrice || maxPrice) {
       query.rentPrice = {};

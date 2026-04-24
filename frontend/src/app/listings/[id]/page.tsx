@@ -44,6 +44,16 @@ export default function ListingDetailPage() {
 
   const listing = listingQuery.data?.data;
   const owner = listing?.ownerId as User | undefined;
+  const pricingOptions =
+    listing?.pricingOptions && listing.pricingOptions.length > 0
+      ? [...listing.pricingOptions]
+      : listing
+        ? [{ unit: listing.rentUnit, price: listing.rentPrice }]
+        : [];
+  const pricingOrder = { day: 1, week: 2, month: 3 };
+  const sortedPricingOptions = pricingOptions.sort(
+    (left, right) => pricingOrder[left.unit] - pricingOrder[right.unit],
+  );
   const galleryPhotos =
     listing?.photos && listing.photos.length > 0
       ? listing.photos.slice(0, 3)
@@ -146,6 +156,26 @@ export default function ListingDetailPage() {
             {listing.deliveryAvailable && <TrustBadge type="delivery" />}
             <TrustBadge type="deposit" />
           </div>
+
+          {sortedPricingOptions.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-medium text-slate-600">Rent Pricing Options</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {sortedPricingOptions.map((option) => (
+                  <span
+                    key={option.unit}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      option.unit === listing.rentUnit
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-white text-slate-700"
+                    }`}
+                  >
+                    {formatCurrency(option.price)} / {option.unit}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-slate-50 p-4">
