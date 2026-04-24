@@ -29,7 +29,7 @@ export function RequestTimeline({ status }: { status: ItemRequestStatus }) {
             key={step}
             className={cn(
               "h-1.5 rounded-full",
-              index <= activeIndex ? "bg-orange-500" : "bg-slate-200",
+              index <= activeIndex ? "bg-[#0078FA]" : "bg-slate-200",
             )}
           />
         ))}

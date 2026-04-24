@@ -17,7 +17,7 @@ export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-slate-900">Explore by Category</h2>
-        <Link href="/explore" className="text-sm font-medium text-orange-700 hover:text-orange-800">
+        <Link href="/explore" className="accent-text text-sm font-medium hover:text-[color:var(--accent-hover)]">
           View all categories
         </Link>
       </div>
@@ -30,7 +30,7 @@ export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
               <Link
                 key={category.key}
                 href={`/categories/${category.key}`}
-                className="group block h-full rounded-2xl border border-slate-100 bg-slate-50 p-3 transition hover:border-orange-200 hover:bg-white"
+                className="group block h-full rounded-2xl border border-slate-100 bg-slate-50 p-3 transition accent-hover-border-soft hover:bg-white"
               >
                 <div className="mb-3 h-28 overflow-hidden rounded-xl bg-slate-100">
                   <img

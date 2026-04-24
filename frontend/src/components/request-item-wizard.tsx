@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "./auth-provider";
 import type { Category, ItemRequest } from "@/types/domain";
@@ -155,9 +155,17 @@ export function RequestItemWizard({ open, onClose, onSuccess }: RequestItemWizar
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3 sm:p-4">
-      <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-orange-700">
+      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="relative border-b border-slate-200 px-5 py-4 pr-12">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close request panel"
+            className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-100"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <p className="accent-text text-xs font-medium uppercase tracking-wide">
             Need something? Post a request and nearby lenders can respond.
           </p>
           <h2 className="mt-1 text-xl font-bold text-slate-900">Request Item</h2>
@@ -166,7 +174,7 @@ export function RequestItemWizard({ open, onClose, onSuccess }: RequestItemWizar
               <div key={item} className="space-y-1">
                 <div
                   className={`h-1.5 rounded-full ${
-                    index <= step ? "bg-orange-500" : "bg-slate-200"
+                    index <= step ? "bg-[#0078FA]" : "bg-slate-200"
                   }`}
                 />
                 <p className="text-[11px] text-slate-500">{item}</p>
@@ -175,7 +183,7 @@ export function RequestItemWizard({ open, onClose, onSuccess }: RequestItemWizar
           </div>
         </div>
 
-        <div className="max-h-[72vh] overflow-y-auto px-5 py-4">
+        <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
           {step === 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-1 sm:col-span-2">

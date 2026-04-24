@@ -103,7 +103,7 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                     onClick={() => router.push(`/chat/${conversation._id}`)}
                     className={`w-full rounded-2xl p-3 text-left transition ${
                       conversation._id === selectedConversationId
-                        ? "bg-orange-50"
+                        ? "accent-bg-soft"
                         : "hover:bg-slate-50"
                     }`}
                   >

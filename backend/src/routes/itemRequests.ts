@@ -167,6 +167,26 @@ router.get(
   }),
 );
 
+router.get(
+  "/public",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    await expireOpenRequests();
+
+    const requests = await ItemRequest.find({
+      type: "open_request",
+      status: { $in: ["open", "responded", "chatting"] },
+      requesterId: { $ne: req.user?._id },
+    })
+      .populate("requesterId", "name profilePhoto city locality kycStatus")
+      .sort({ createdAt: -1 })
+      .limit(80)
+      .lean();
+
+    return res.json({ data: requests });
+  }),
+);
+
 router.post(
   "/",
   requireAuth,

@@ -23,7 +23,7 @@ export function HowItWorks() {
           const Icon = step.icon;
           const node = (
             <article className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <div className="mb-2 inline-flex rounded-lg bg-white p-2 text-orange-700 shadow-sm">
+              <div className="accent-text mb-2 inline-flex rounded-lg bg-white p-2 shadow-sm">
                 <Icon className="h-4 w-4" />
               </div>
               <p className="text-sm font-semibold text-slate-900">

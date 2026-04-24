@@ -37,7 +37,10 @@ export function HomePageContent() {
       <section className="space-y-4 pb-8">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-slate-900">Fresh Listings Near You</h2>
-          <Link href="/search" className="text-sm font-medium text-orange-700 hover:text-orange-800">
+          <Link
+            href="/search"
+            className="accent-text text-sm font-medium hover:text-[color:var(--accent-hover)]"
+          >
             Browse all
           </Link>
         </div>

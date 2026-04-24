@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LifecycleStepper } from "@/components/ui/lifecycle-stepper";
 import { RequestStatusActions } from "@/components/request-status-actions";
+import { PublicItemRequestsPanel } from "@/components/public-item-requests-panel";
 import { api } from "@/lib/api";
 import { formatCurrency, getId, shortDate, titleCase } from "@/lib/utils";
 import type { Listing, RentalRequest, User } from "@/types/domain";
@@ -20,7 +21,10 @@ function RequestCard({ request, token }: { request: RentalRequest; token: string
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <Link href={`/listings/${getId(request.listingId)}`} className="font-semibold text-slate-900 hover:text-orange-700">
+          <Link
+            href={`/listings/${getId(request.listingId)}`}
+            className="font-semibold text-slate-900 hover:text-[color:var(--accent)]"
+          >
             {listing.title}
           </Link>
           <p className="text-xs text-slate-500">
@@ -76,6 +80,7 @@ export default function RenterDashboardPage() {
           <h2 className="text-lg font-semibold text-slate-900">My Requests</h2>
           {requests.length === 0 ? (
             <EmptyState
+              compact
               title="No rental requests yet"
               description="Explore rentals and request your first item."
             />
@@ -89,9 +94,17 @@ export default function RenterDashboardPage() {
         </section>
 
         <section className="space-y-3">
+          <PublicItemRequestsPanel />
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-lg font-semibold text-slate-900">Active Rentals</h2>
           {activeRequests.length === 0 ? (
-            <EmptyState title="No active rentals" description="Accepted rentals will appear here." />
+            <EmptyState
+              compact
+              title="No active rentals"
+              description="Accepted rentals will appear here."
+            />
           ) : (
             <div className="grid gap-3">
               {activeRequests.map((request) => (
@@ -104,7 +117,11 @@ export default function RenterDashboardPage() {
         <section className="space-y-3 pb-8">
           <h2 className="text-lg font-semibold text-slate-900">Completed Rentals</h2>
           {completedRequests.length === 0 ? (
-            <EmptyState title="No completed rentals yet" description="Completed bookings will appear here." />
+            <EmptyState
+              compact
+              title="No completed rentals yet"
+              description="Completed bookings will appear here."
+            />
           ) : (
             <div className="grid gap-3">
               {completedRequests.map((request) => (

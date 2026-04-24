@@ -54,13 +54,13 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
   }
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-rose-50 p-6 shadow-sm sm:p-10">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-orange-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-amber-100/50 blur-3xl" />
+    <section className="relative overflow-hidden rounded-3xl border accent-border-soft bg-gradient-to-br from-[color:var(--accent-soft)] via-white to-sky-50 p-6 shadow-sm sm:p-10">
+      <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#0078FA]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-[#0078FA]/12 blur-3xl" />
 
       <div className="grid items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-5">
-          <p className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-medium text-orange-800">
+          <p className="accent-text inline-flex items-center gap-2 rounded-full border accent-border-soft bg-white px-3 py-1 text-xs font-medium">
             <ShieldCheck className="h-3.5 w-3.5" />
             Trusted P2P rental marketplace
           </p>
@@ -117,10 +117,10 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
               </div>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+                className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium !text-white transition hover:bg-slate-700"
               >
                 Search
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 text-white" />
               </button>
             </div>
           </form>
@@ -128,7 +128,7 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
           <div className="flex flex-wrap gap-2.5">
             <Link
               href="/explore"
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium !text-white hover:bg-slate-700"
             >
               Explore Rentals
             </Link>
@@ -149,7 +149,7 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
                     key={chip.label}
                     className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700"
                   >
-                    <Icon className="h-3.5 w-3.5 text-orange-600" />
+                    <Icon className="accent-text h-3.5 w-3.5" />
                     {chip.label}
                   </span>
                 );
@@ -162,7 +162,7 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
                   transition={{ delay: 0.12 + idx * 0.06, duration: 0.28 }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700"
                 >
-                  <Icon className="h-3.5 w-3.5 text-orange-600" />
+                  <Icon className="accent-text h-3.5 w-3.5" />
                   {chip.label}
                 </motion.span>
               );
@@ -171,7 +171,7 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
         </div>
 
         <div className="relative mx-auto w-full max-w-sm">
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-200/50 to-amber-100/50 blur-2xl" />
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#66B2FF]/40 to-[#B8D9FF]/35 blur-2xl" />
           <div className="relative space-y-3">
             {(heroListings.length > 0
               ? heroListings.map((listing) => ({

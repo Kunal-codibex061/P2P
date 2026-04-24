@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <section className="rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-rose-50 p-7">
+      <section className="rounded-3xl border accent-border-soft bg-gradient-to-br from-[color:var(--accent-soft)] via-white to-sky-50 p-7">
         <h1 className="text-2xl font-bold text-slate-900">Mock Login</h1>
         <p className="mt-2 text-sm text-slate-600">
           Switch between demo users to preview renter, lender, and hybrid experiences.
@@ -42,7 +42,7 @@ export default function LoginPage() {
                   await loginAsDemoUser(demoUser._id);
                   router.push("/");
                 }}
-                className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
+                className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 accent-hover-border-soft hover:shadow-md"
               >
                 <div className="flex items-center gap-3">
                   <img
