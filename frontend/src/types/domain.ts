@@ -55,6 +55,10 @@ export interface Listing {
   replacementValue: number;
   rentPrice: number;
   rentUnit: "day" | "week" | "month";
+  pricingOptions?: Array<{
+    unit: "day" | "week" | "month";
+    price: number;
+  }>;
   depositAmount: number;
   locality: string;
   city: string;

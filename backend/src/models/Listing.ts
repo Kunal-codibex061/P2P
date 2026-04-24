@@ -1,5 +1,13 @@
 import { Schema, model, type InferSchemaType } from "mongoose";
 
+const pricingOptionSchema = new Schema(
+  {
+    unit: { type: String, enum: ["day", "week", "month"], required: true },
+    price: { type: Number, required: true, min: 0 },
+  },
+  { _id: false },
+);
+
 const listingSchema = new Schema(
   {
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -12,6 +20,7 @@ const listingSchema = new Schema(
     replacementValue: { type: Number, required: true },
     rentPrice: { type: Number, required: true, index: true },
     rentUnit: { type: String, enum: ["day", "week", "month"], required: true },
+    pricingOptions: { type: [pricingOptionSchema], default: [] },
     depositAmount: { type: Number, required: true },
     locality: { type: String, required: true, index: true },
     city: { type: String, required: true, index: true },

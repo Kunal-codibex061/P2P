@@ -1,4 +1,4 @@
-interface ListingFilters {
+export interface ListingFilters {
   category?: string;
   city?: string;
   locality?: string;

@@ -6,6 +6,11 @@ import { asyncHandler } from "../utils/http";
 
 const router = Router();
 
+const pricingOptionSchema = z.object({
+  unit: z.enum(["day", "week", "month"]),
+  price: z.number().positive(),
+});
+
 const listingBodySchema = z.object({
   title: z.string().min(3),
   category: z.string().min(2),
@@ -16,6 +21,7 @@ const listingBodySchema = z.object({
   replacementValue: z.number().positive(),
   rentPrice: z.number().positive(),
   rentUnit: z.enum(["day", "week", "month"]),
+  pricingOptions: z.array(pricingOptionSchema).max(3).optional().default([]),
   depositAmount: z.number().nonnegative(),
   locality: z.string().min(2),
   city: z.string().min(2),
@@ -25,6 +31,14 @@ const listingBodySchema = z.object({
   accessories: z.array(z.string()).default([]),
   specifications: z.record(z.string(), z.any()).optional().default({}),
 });
+
+function normalizePricingOptions(options: Array<{ unit: "day" | "week" | "month"; price: number }>) {
+  const byUnit = new Map<"day" | "week" | "month", { unit: "day" | "week" | "month"; price: number }>();
+  options.forEach((option) => {
+    byUnit.set(option.unit, option);
+  });
+  return Array.from(byUnit.values());
+}
 
 router.get(
   "/",
@@ -98,12 +112,25 @@ router.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const payload = listingBodySchema.parse(req.body);
+    const normalizedPricingOptions = normalizePricingOptions(
+      payload.pricingOptions.length > 0
+        ? payload.pricingOptions
+        : [{ unit: payload.rentUnit, price: payload.rentPrice }],
+    );
+
+    const primaryPricingOption = normalizedPricingOptions.find(
+      (option) => option.unit === payload.rentUnit,
+    ) || normalizedPricingOptions[0];
+
     const user = await User.findById(req.user?._id).lean();
     if (!user) {
       return res.status(404).json({ message: "Owner profile not found." });
     }
     const listing = await Listing.create({
       ...payload,
+      rentPrice: primaryPricingOption.price,
+      rentUnit: primaryPricingOption.unit,
+      pricingOptions: normalizedPricingOptions,
       ownerId: req.user?._id,
       isVerifiedOwner: user.kycStatus === "verified",
       moderationStatus: "approved",
@@ -116,7 +143,9 @@ router.put(
   "/:id",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const payload = listingBodySchema.partial().parse(req.body);
+    const payload = listingBodySchema.partial().parse(req.body) as z.infer<
+      typeof listingBodySchema
+    >;
     const listing = await Listing.findById(req.params.id);
     if (!listing) {
       return res.status(404).json({ message: "Listing not found." });
@@ -126,6 +155,14 @@ router.put(
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: "You can only edit your own listing." });
     }
+
+    if (payload.pricingOptions && payload.pricingOptions.length > 0) {
+      const normalizedPricingOptions = normalizePricingOptions(payload.pricingOptions);
+      payload.pricingOptions = normalizedPricingOptions;
+      if (!payload.rentUnit) payload.rentUnit = normalizedPricingOptions[0].unit;
+      if (!payload.rentPrice) payload.rentPrice = normalizedPricingOptions[0].price;
+    }
+
     Object.assign(listing, payload);
     await listing.save();
     return res.json({ data: listing });
