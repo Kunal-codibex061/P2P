@@ -8,12 +8,14 @@ import { AnimatedSection } from "@/components/landing/animated-section";
 import { CategoryShowcase } from "@/components/landing/category-showcase";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { ListingCard } from "@/components/listing-card";
+import {
+  SEARCH_CITY_CHANGE_EVENT,
+  SEARCH_CITY_SOURCE_STORAGE_KEY,
+  SEARCH_CITY_STORAGE_KEY,
+} from "@/lib/location";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-card";
 import type { Category, Listing } from "@/types/domain";
-
-const SEARCH_CITY_STORAGE_KEY = "rentora-search-city";
-const SEARCH_CITY_CHANGE_EVENT = "rentora-search-city-changed";
 const INITIAL_VISIBLE_LISTINGS = 12;
 const LOAD_MORE_LISTINGS_STEP = 12;
 
@@ -61,20 +63,24 @@ function FreshListingsGrid({ listings }: { listings: Listing[] }) {
 }
 
 export function HomePageContent() {
-  const [selectedCity, setSelectedCity] = useState(() =>
-    typeof window !== "undefined"
-      ? (window.localStorage.getItem(SEARCH_CITY_STORAGE_KEY) || "").trim()
-      : "",
-  );
+  const [selectedCity, setSelectedCity] = useState("");
 
   useEffect(() => {
+    function readCityWithSource() {
+      const source = window.localStorage.getItem(SEARCH_CITY_SOURCE_STORAGE_KEY);
+      if (source !== "manual" && source !== "geo") return "";
+      return (window.localStorage.getItem(SEARCH_CITY_STORAGE_KEY) || "").trim();
+    }
+
+    setSelectedCity(readCityWithSource());
+
     function syncCityFromStorage() {
-      setSelectedCity((window.localStorage.getItem(SEARCH_CITY_STORAGE_KEY) || "").trim());
+      setSelectedCity(readCityWithSource());
     }
 
     function onStorage(event: StorageEvent) {
-      if (event.key === SEARCH_CITY_STORAGE_KEY) {
-        setSelectedCity((event.newValue || "").trim());
+      if (event.key === SEARCH_CITY_STORAGE_KEY || event.key === SEARCH_CITY_SOURCE_STORAGE_KEY) {
+        setSelectedCity(readCityWithSource());
       }
     }
 

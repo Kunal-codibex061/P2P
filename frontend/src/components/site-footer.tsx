@@ -4,10 +4,10 @@ const footerLinks = [
   { label: "Explore", href: "/explore" },
   { label: "Search", href: "/search" },
   { label: "Categories", href: "/explore" },
-  { label: "Help", href: "/search?q=help" },
-  { label: "Privacy", href: "/search?q=privacy" },
-  { label: "Terms", href: "/search?q=terms" },
-  { label: "Contact", href: "/search?q=contact" },
+  { label: "Help", href: "/help" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export function SiteFooter() {

@@ -61,13 +61,40 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
   }
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border accent-border-soft bg-gradient-to-br from-[color:var(--accent-soft)] via-white to-sky-50 p-6 shadow-sm sm:p-10 lg:h-[calc(100svh-8.5rem)]">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#0078FA]/20 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-[#0078FA]/12 blur-3xl" />
+    <section className="relative overflow-hidden rounded-3xl border accent-border-soft bg-gradient-to-br from-[color:var(--accent-soft)] via-white to-sky-50 p-6 shadow-sm sm:p-10 lg:min-h-[calc(100svh-8.5rem)]">
+      {shouldReduceMotion ? (
+        <>
+          <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#0078FA]/20 blur-3xl" />
+          <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-[#0078FA]/12 blur-3xl" />
+        </>
+      ) : (
+        <>
+          <motion.div
+            className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#0078FA]/20 blur-3xl"
+            animate={{ y: [0, 8, 0], x: [0, -6, 0] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-[#0078FA]/12 blur-3xl"
+            animate={{ y: [0, -8, 0], x: [0, 5, 0] }}
+            transition={{ duration: 10.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </>
+      )}
 
       <div className="grid items-start gap-8 lg:h-full lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-6 lg:space-y-7 lg:py-2">
-          <div className="space-y-4">
+        <motion.div
+          className="space-y-6 lg:space-y-7 lg:py-2"
+          initial={shouldReduceMotion ? undefined : { opacity: 0, y: 14 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, ease: "easeOut" }}
+        >
+          <motion.div
+            className="space-y-4"
+            initial={shouldReduceMotion ? undefined : { opacity: 0, y: 12 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, delay: 0.02 }}
+          >
             <h1 className="max-w-xl text-3xl font-bold tracking-tight leading-[1.04] text-slate-900 sm:text-5xl">
               Rent useful things from verified neighbors in minutes.
             </h1>
@@ -75,9 +102,16 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
               Cameras, tools, furniture, electronics, and event gear - local, dependable, and
               designed around trust.
             </p>
-          </div>
+          </motion.div>
 
-          <form onSubmit={submitSearch} className="max-w-xl rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          <motion.form
+            onSubmit={submitSearch}
+            className="max-w-xl rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
+            initial={shouldReduceMotion ? undefined : { opacity: 0, y: 10 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, delay: 0.08 }}
+            whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+          >
             <div className="flex items-center gap-2">
               <Search className="ml-2 h-4 w-4 text-slate-400" />
               <div className="relative w-full">
@@ -128,24 +162,38 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
                 <ArrowRight className="h-4 w-4 text-white" />
               </button>
             </div>
-          </form>
+          </motion.form>
 
-          <div className="flex flex-wrap gap-2.5">
-            <Link
-              href="/explore"
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium !text-white hover:bg-slate-700"
-            >
-              Explore Rentals
-            </Link>
-            <Link
-              href="/listings/new"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            >
-              List Your Item
-            </Link>
-          </div>
+          <motion.div
+            className="flex flex-wrap gap-2.5"
+            initial={shouldReduceMotion ? undefined : { opacity: 0, y: 10 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, delay: 0.12 }}
+          >
+            <motion.div whileHover={shouldReduceMotion ? undefined : { y: -2 }} whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}>
+              <Link
+                href="/explore"
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium !text-white hover:bg-slate-700"
+              >
+                Explore Rentals
+              </Link>
+            </motion.div>
+            <motion.div whileHover={shouldReduceMotion ? undefined : { y: -2 }} whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}>
+              <Link
+                href="/listings/new"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                List Your Item
+              </Link>
+            </motion.div>
+          </motion.div>
 
-          <div className="max-w-xl">
+          <motion.div
+            className="max-w-xl"
+            initial={shouldReduceMotion ? undefined : { opacity: 0, y: 10 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, delay: 0.16 }}
+          >
             <div className="flex flex-wrap gap-2">
               {quickCategoryPills.map((pill, idx) => {
                 const pillNode = (
@@ -172,13 +220,13 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
 
-        </div>
+        </motion.div>
 
-        <div className="relative mx-auto w-full max-w-sm lg:h-full">
+        <div className="relative mx-auto w-full max-w-sm lg:h-full lg:py-2">
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#66B2FF]/40 to-[#B8D9FF]/35 blur-2xl" />
-          <div className="relative space-y-3 lg:flex lg:h-full lg:flex-col">
+          <div className="relative space-y-3 lg:flex lg:h-full lg:flex-col lg:pb-2">
             {(heroListings.length > 0
               ? heroListings.map((listing) => ({
                   title: listing.title,
@@ -227,10 +275,10 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
               return (
                 <motion.div
                   key={`${card.title}-${index}`}
-                  initial={{ opacity: 0, y: 24, rotate: index % 2 === 0 ? -1.8 : 1.8 }}
-                  animate={{ opacity: 1, y: 0, rotate: index % 2 === 0 ? -1.8 : 1.8 }}
+                  initial={{ opacity: 0, y: 24, rotate: index % 2 === 0 ? -1.2 : 1.2 }}
+                  animate={{ opacity: 1, y: 0, rotate: index % 2 === 0 ? -1.2 : 1.2 }}
                   transition={{ duration: 0.45, delay: 0.08 + index * 0.08 }}
-                  whileHover={{ y: -4, rotate: 0 }}
+                  whileHover={{ y: -6, rotate: 0, scale: 1.012 }}
                   className="lg:flex-1"
                 >
                   {cardNode}

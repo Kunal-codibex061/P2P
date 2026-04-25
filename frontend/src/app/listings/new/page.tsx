@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { Suspense, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ImagePlus, Loader2, X } from "lucide-react";
@@ -58,7 +58,7 @@ const initialUploadingState: Record<PhotoAngleKey, boolean> = {
   side4: false,
 };
 
-export default function CreateListingPage() {
+function CreateListingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
@@ -627,5 +627,13 @@ export default function CreateListingPage() {
         </section>
       </div>
     </RequireAuth>
+  );
+}
+
+export default function CreateListingPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto w-full max-w-5xl px-4 py-8" />}>
+      <CreateListingPageContent />
+    </Suspense>
   );
 }
