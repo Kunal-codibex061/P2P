@@ -12,7 +12,8 @@ import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
 import { formatCurrency, getId, shortDate, titleCase } from "@/lib/utils";
-import type { Conversation, Listing, RentalRequest, User } from "@/types/domain";
+import type { Conversation, ItemRequest, Listing, RentalRequest, User } from "@/types/domain";
+import { RequestTimeline } from "./request-timeline";
 
 const quickActions = [
   "Is this available?",
@@ -47,6 +48,7 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
   const selectedConversation = conversationDetailQuery.data?.data;
 
   const request = selectedConversation?.requestId as RentalRequest | undefined;
+  const itemRequest = selectedConversation?.itemRequestId as ItemRequest | undefined;
   const listing = selectedConversation?.listingId as Listing | undefined;
 
   const sendMessage = useMutation({
@@ -76,12 +78,12 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
 
   return (
     <RequireAuth>
-      <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-8 lg:grid-cols-[340px_1fr]">
-        <aside className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-4 lg:min-h-[calc(100svh-10rem)] lg:grid-cols-[340px_minmax(0,1fr)] lg:items-stretch">
+        <aside className="rounded-3xl border border-slate-200 bg-white shadow-sm lg:flex lg:h-full lg:min-h-0 lg:flex-col">
           <div className="border-b border-slate-200 px-4 py-3">
             <h2 className="font-semibold text-slate-900">Conversations</h2>
           </div>
-          <div className="max-h-[70vh] overflow-y-auto p-2">
+          <div className="overflow-y-auto p-2 lg:min-h-0 lg:flex-1">
             {conversations.length === 0 ? (
               <EmptyState
                 title="No chats yet"
@@ -94,13 +96,14 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                     ? (conversation.lenderId as User)
                     : (conversation.renterId as User);
                 const itemListing = conversation.listingId as Listing;
+                const openRequest = conversation.itemRequestId as ItemRequest | undefined;
                 return (
                   <button
                     key={conversation._id}
                     onClick={() => router.push(`/chat/${conversation._id}`)}
                     className={`w-full rounded-2xl p-3 text-left transition ${
                       conversation._id === selectedConversationId
-                        ? "bg-orange-50"
+                        ? "accent-bg-soft"
                         : "hover:bg-slate-50"
                     }`}
                   >
@@ -112,7 +115,9 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                       />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-900">{other.name}</p>
-                        <p className="truncate text-xs text-slate-500">{itemListing.title}</p>
+                        <p className="truncate text-xs text-slate-500">
+                          {itemListing?.title || openRequest?.title || "Open request conversation"}
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -122,9 +127,9 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
           </div>
         </aside>
 
-        <section className="space-y-4">
-          {!selectedConversation || !request || !listing ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-8">
+        <section className="space-y-4 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+          {!selectedConversation ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 lg:flex lg:min-h-0 lg:flex-1 lg:items-center lg:justify-center">
               <EmptyState
                 title="Select a conversation"
                 description="Open a chat from left to continue rental discussion."
@@ -135,39 +140,60 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
               <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{listing.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {shortDate(request.startDate)} - {shortDate(request.endDate)} ·{" "}
-                      {titleCase(request.pickupPreference)}
+                    <p className="text-sm font-semibold text-slate-900">
+                      {listing?.title || itemRequest?.title || "Conversation"}
                     </p>
+                    {request ? (
+                      <p className="text-xs text-slate-500">
+                        {shortDate(request.startDate)} - {shortDate(request.endDate)} ·{" "}
+                        {titleCase(request.pickupPreference)}
+                      </p>
+                    ) : itemRequest ? (
+                      <p className="text-xs text-slate-500">
+                        {shortDate(itemRequest.startDate)} - {shortDate(itemRequest.endDate)} ·{" "}
+                        {titleCase(itemRequest.pickupDeliveryPreference)}
+                      </p>
+                    ) : null}
                   </div>
-                  <Link
-                    href={`/listings/${listing._id}`}
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
-                  >
-                    View Listing
-                  </Link>
+                  {listing?._id ? (
+                    <Link
+                      href={`/listings/${listing._id}`}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                    >
+                      View Listing
+                    </Link>
+                  ) : null}
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-xl bg-slate-50 p-2 text-sm">
-                    Rent: <strong>{formatCurrency(request.quotedRent)}</strong>
+                    Rent:{" "}
+                    <strong>
+                      {formatCurrency(request?.quotedRent || itemRequest?.budgetAmount || 0)}
+                    </strong>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-2 text-sm">
-                    Deposit: <strong>{formatCurrency(request.depositAmount)}</strong>
+                    Deposit:{" "}
+                    <strong>
+                      {formatCurrency(request?.depositAmount || 0)}
+                    </strong>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-2 text-sm">
-                    Status: <strong>{titleCase(request.status)}</strong>
+                    Status: <strong>{titleCase(request?.status || itemRequest?.status || "open")}</strong>
                   </div>
                 </div>
                 <div className="mt-3">
-                  <LifecycleStepper status={request.status} />
+                  {request ? (
+                    <LifecycleStepper status={request.status} />
+                  ) : itemRequest ? (
+                    <RequestTimeline status={itemRequest.status} />
+                  ) : null}
                 </div>
               </div>
 
               <SafetyBanner />
 
-              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div className="max-h-[48vh] space-y-2 overflow-y-auto p-4">
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+                <div className="space-y-2 overflow-y-auto p-4 lg:min-h-0 lg:flex-1">
                   {orderedMessages.map((message, index) => {
                     const mine = message.senderId === user?._id;
                     return message.type === "system" ? (

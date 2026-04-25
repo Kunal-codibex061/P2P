@@ -3,6 +3,11 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  --accent: #0078fa;
+  --accent-hover: #0063cf;
+  --accent-soft: #eaf3ff;
+  --accent-border: #b8d9ff;
+  --accent-ring: #66b2ff;
 }
 
 @theme inline {
@@ -23,4 +28,41 @@ input,
 select,
 textarea {
   outline: none;
+}
+
+a {
+  color: inherit;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.accent-text {
+  color: var(--accent);
+}
+
+.accent-text-strong {
+  color: var(--accent-hover);
+}
+
+.accent-bg-soft {
+  background-color: var(--accent-soft);
+}
+
+.accent-border-soft {
+  border-color: var(--accent-border);
+}
+
+.accent-hover-bg-soft:hover {
+  background-color: var(--accent-soft);
+}
+
+.accent-hover-border-soft:hover {
+  border-color: var(--accent-border);
 }

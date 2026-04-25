@@ -18,6 +18,17 @@ export type RequestStatus =
   | "disputed"
   | "cancelled";
 
+export type ItemRequestStatus =
+  | "open"
+  | "responded"
+  | "chatting"
+  | "accepted"
+  | "confirmed"
+  | "active"
+  | "completed"
+  | "cancelled"
+  | "expired";
+
 export type MessageType = "text" | "system";
 
 export interface AuthUserPayload {

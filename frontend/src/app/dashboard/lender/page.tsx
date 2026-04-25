@@ -59,7 +59,12 @@ export default function LenderDashboardPage() {
             </Link>
           </div>
           {listings.length === 0 ? (
-            <EmptyState title="No listings yet" description="Publish your first big-ticket item." />
+            <EmptyState
+              compact
+              compactLayout="full"
+              title="No listings yet"
+              description="Publish your first big-ticket item."
+            />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {listings.map((listing) => (
@@ -95,7 +100,12 @@ export default function LenderDashboardPage() {
         <section className="space-y-3 pb-8">
           <h2 className="text-lg font-semibold text-slate-900">Incoming Requests</h2>
           {requests.length === 0 ? (
-            <EmptyState title="No incoming requests" description="New renter requests will appear here." />
+            <EmptyState
+              compact
+              compactLayout="full"
+              title="No incoming requests"
+              description="New renter requests will appear here."
+            />
           ) : (
             <div className="grid gap-3">
               {requests.map((request) => {
@@ -127,6 +137,7 @@ export default function LenderDashboardPage() {
             </div>
           )}
         </section>
+
       </div>
     </RequireAuth>
   );

@@ -12,8 +12,18 @@ const messageSchema = new Schema(
 
 const conversationSchema = new Schema(
   {
-    requestId: { type: Schema.Types.ObjectId, ref: "RentalRequest", required: true, unique: true },
-    listingId: { type: Schema.Types.ObjectId, ref: "Listing", required: true, index: true },
+    requestId: {
+      type: Schema.Types.ObjectId,
+      ref: "RentalRequest",
+      default: undefined,
+    },
+    itemRequestId: {
+      type: Schema.Types.ObjectId,
+      ref: "ItemRequest",
+      default: null,
+      index: true,
+    },
+    listingId: { type: Schema.Types.ObjectId, ref: "Listing", default: null, index: true },
     renterId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     lenderId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     messages: { type: [messageSchema], default: [] },
@@ -21,7 +31,14 @@ const conversationSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: true } },
 );
 
+conversationSchema.pre("validate", function validateReference() {
+  if (!this.requestId && !this.itemRequestId) {
+    throw new Error("Conversation requires requestId or itemRequestId.");
+  }
+});
+
 conversationSchema.index({ renterId: 1, lenderId: 1, updatedAt: -1 });
+conversationSchema.index({ requestId: 1 }, { unique: true, sparse: true });
 
 export type ConversationDocument = InferSchemaType<typeof conversationSchema> & {
   _id: string;

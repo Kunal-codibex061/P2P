@@ -77,7 +77,7 @@ export function RequestModal({ open, onClose, onSubmit }: RequestModalProps) {
                 onClick={() => setForm((prev) => ({ ...prev, pickupPreference: value }))}
                 className={`rounded-xl border px-3 py-2 text-sm ${
                   form.pickupPreference === value
-                    ? "border-orange-300 bg-orange-50 text-orange-800"
+                    ? "accent-border-soft accent-bg-soft accent-text-strong"
                     : "border-slate-200 bg-white text-slate-700"
                 }`}
               >

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Conversation, RentalRequest } from "../models";
+import { Conversation, ItemRequest, RentalRequest } from "../models";
 import { requireAuth } from "../middleware/auth";
 import { asyncHandler } from "../utils/http";
 
@@ -20,6 +20,10 @@ router.get(
     })
       .populate("listingId", "title photos rentPrice rentUnit city locality")
       .populate("requestId", "status startDate endDate quotedRent depositAmount pickupPreference")
+      .populate(
+        "itemRequestId",
+        "type title category subcategory purpose startDate endDate budgetAmount status city locality responseCount",
+      )
       .populate("renterId", "name profilePhoto")
       .populate("lenderId", "name profilePhoto")
       .sort({ updatedAt: -1 })
@@ -36,6 +40,7 @@ router.get(
     const conversation = await Conversation.findById(req.params.id)
       .populate("listingId")
       .populate("requestId")
+      .populate("itemRequestId")
       .populate("renterId", "name profilePhoto")
       .populate("lenderId", "name profilePhoto")
       .lean();
@@ -76,10 +81,18 @@ router.post(
     await conversation.save();
 
     if (payload.type === "text") {
-      await RentalRequest.updateOne(
-        { _id: conversation.requestId, status: "requested" },
-        { $set: { status: "chatting" } },
-      );
+      if (conversation.requestId) {
+        await RentalRequest.updateOne(
+          { _id: conversation.requestId, status: "requested" },
+          { $set: { status: "chatting" } },
+        );
+      }
+      if (conversation.itemRequestId) {
+        await ItemRequest.updateOne(
+          { _id: conversation.itemRequestId, status: { $in: ["open", "responded"] } },
+          { $set: { status: "chatting" } },
+        );
+      }
     }
 
     return res.status(201).json({

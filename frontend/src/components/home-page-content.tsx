@@ -1,319 +1,145 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Camera,
-  Drill,
-  Gamepad2,
-  Home,
-  LampDesk,
-  MapPin,
-  PartyPopper,
-  Search,
-  Tent,
-} from "lucide-react";
 import { api } from "@/lib/api";
+import { AnimatedSection } from "@/components/landing/animated-section";
+import { CategoryShowcase } from "@/components/landing/category-showcase";
+import { LandingHero } from "@/components/landing/landing-hero";
 import { ListingCard } from "@/components/listing-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-card";
 import type { Category, Listing } from "@/types/domain";
 
-interface ListingFilters {
-  category?: string;
-  city?: string;
-  locality?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  availability?: string;
-  verifiedOnly?: boolean;
-  deliveryAvailable?: boolean;
-  q?: string;
-}
+const SEARCH_CITY_STORAGE_KEY = "rentora-search-city";
+const SEARCH_CITY_CHANGE_EVENT = "rentora-search-city-changed";
+const INITIAL_VISIBLE_LISTINGS = 12;
+const LOAD_MORE_LISTINGS_STEP = 12;
 
-const iconMap: Record<string, ComponentType<{ className?: string }>> = {
-  furniture: LampDesk,
-  "cameras-creator-gear": Camera,
-  "electronics-gaming": Gamepad2,
-  "home-appliances": Home,
-  "tools-diy": Drill,
-  "events-outdoor": Tent,
-};
+function FreshListingsGrid({ listings }: { listings: Listing[] }) {
+  const [visibleListingsCount, setVisibleListingsCount] = useState(INITIAL_VISIBLE_LISTINGS);
+  const loadMoreAnchorRef = useRef<HTMLDivElement | null>(null);
 
-const defaultFilters: ListingFilters = {
-  availability: "available",
-};
+  const visibleListings = useMemo(
+    () => listings.slice(0, visibleListingsCount),
+    [listings, visibleListingsCount],
+  );
+  const hasMoreListings = visibleListingsCount < listings.length;
 
-function filtersFromParams(params: URLSearchParams): ListingFilters {
-  return {
-    category: params.get("category") || undefined,
-    city: params.get("city") || undefined,
-    locality: params.get("locality") || undefined,
-    q: params.get("q") || undefined,
-    minPrice: params.get("minPrice") || undefined,
-    maxPrice: params.get("maxPrice") || undefined,
-    availability: params.get("availability") || "available",
-    verifiedOnly: params.get("verifiedOnly") === "true",
-    deliveryAvailable: params.get("deliveryAvailable") === "true",
-  };
-}
+  useEffect(() => {
+    if (!hasMoreListings || !loadMoreAnchorRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const shouldLoadMore = entries.some((entry) => entry.isIntersecting);
+        if (!shouldLoadMore) return;
+        setVisibleListingsCount((current) =>
+          Math.min(current + LOAD_MORE_LISTINGS_STEP, listings.length),
+        );
+      },
+      { root: null, rootMargin: "320px 0px", threshold: 0.01 },
+    );
 
-function toQuery(filters: ListingFilters) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") return;
-    params.set(key, String(value));
-  });
-  return params.toString();
+    observer.observe(loadMoreAnchorRef.current);
+    return () => observer.disconnect();
+  }, [hasMoreListings, listings.length, visibleListingsCount]);
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleListings.map((listing) => (
+          <ListingCard key={listing._id} listing={listing} />
+        ))}
+      </div>
+      {hasMoreListings ? (
+        <div ref={loadMoreAnchorRef} className="flex justify-center py-2">
+          <span className="text-xs text-slate-500">Loading more listings...</span>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 export function HomePageContent() {
-  const searchParams = useSearchParams();
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const [filters, setFilters] = useState<ListingFilters>(defaultFilters);
+  const [selectedCity, setSelectedCity] = useState(() =>
+    typeof window !== "undefined"
+      ? (window.localStorage.getItem(SEARCH_CITY_STORAGE_KEY) || "").trim()
+      : "",
+  );
 
   useEffect(() => {
-    const next = filtersFromParams(new URLSearchParams(searchParams.toString()));
-    setFilters(next);
-  }, [searchParams]);
+    function syncCityFromStorage() {
+      setSelectedCity((window.localStorage.getItem(SEARCH_CITY_STORAGE_KEY) || "").trim());
+    }
 
-  useEffect(() => {
-    if (searchParams.get("focus") !== "search") return;
-    requestAnimationFrame(() => {
-      searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      searchInputRef.current?.focus();
-    });
-  }, [searchParams]);
+    function onStorage(event: StorageEvent) {
+      if (event.key === SEARCH_CITY_STORAGE_KEY) {
+        setSelectedCity((event.newValue || "").trim());
+      }
+    }
 
-  const queryString = useMemo(() => toQuery(filters), [filters]);
+    window.addEventListener(SEARCH_CITY_CHANGE_EVENT, syncCityFromStorage);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(SEARCH_CITY_CHANGE_EVENT, syncCityFromStorage);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
-    queryFn: () =>
-      api.get<{ categories: Category[]; collections: string[] }>("/api/categories"),
+    queryFn: () => api.get<{ categories: Category[] }>("/api/categories"),
   });
 
   const listingsQuery = useQuery({
-    queryKey: ["home-listings", queryString],
-    queryFn: () => api.get<Listing[]>(`/api/listings?${queryString}`),
+    queryKey: ["home-listings-available", selectedCity],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set("availability", "available");
+      if (selectedCity) params.set("city", selectedCity);
+      return api.get<Listing[]>(`/api/listings?${params.toString()}`);
+    },
   });
 
   const categories = categoriesQuery.data?.data.categories || [];
-  const collections = categoriesQuery.data?.data.collections || [];
-  const listings = listingsQuery.data?.data || [];
-
-  function resetFilters() {
-    setFilters(defaultFilters);
-  }
+  const listings = useMemo(() => listingsQuery.data?.data ?? [], [listingsQuery.data?.data]);
+  const previewListings = listings.slice(0, 6);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:py-8">
-      <section className="relative overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-rose-50 p-6 shadow-sm sm:p-10">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-orange-200/30 blur-2xl" />
-        <p className="mb-2 inline-flex rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-medium text-orange-800">
-          Trusted P2P rental marketplace
-        </p>
-        <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-          Rent big useful things from verified people near you.
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
-          Furniture, cameras, gaming consoles, tools, appliances, and event gear - all high-value,
-          all local, all trust-first.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-2.5">
-          <Link
-            href="/#explore-rentals"
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            Explore Rentals
-          </Link>
-          <Link
-            href="/listings/new"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          >
-            List Your Item
-          </Link>
-        </div>
-      </section>
+      <LandingHero listings={previewListings} categories={categories} />
 
-      <section
-        id="explore-rentals"
-        className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900">Explore Rentals</h2>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-          >
-            Clear Filters
-          </button>
-        </div>
-
-        <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-12">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 lg:col-span-3">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              id="home-filters-search"
-              ref={searchInputRef}
-              value={filters.q || ""}
-              onChange={(event) => setFilters({ ...filters, q: event.target.value })}
-              className="w-full bg-transparent text-sm"
-              placeholder="Search item, category..."
-            />
-          </div>
-
-          <select
-            value={filters.category || ""}
-            onChange={(event) =>
-              setFilters({ ...filters, category: event.target.value || undefined })
-            }
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm lg:col-span-2"
-          >
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.key} value={category.label}>
-                {category.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 lg:col-span-2">
-            <MapPin className="h-4 w-4 text-slate-400" />
-            <input
-              value={filters.city || ""}
-              onChange={(event) => setFilters({ ...filters, city: event.target.value })}
-              className="w-full bg-transparent text-sm"
-              placeholder="City"
-            />
-          </div>
-
-          <input
-            value={filters.locality || ""}
-            onChange={(event) => setFilters({ ...filters, locality: event.target.value })}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm lg:col-span-2"
-            placeholder="Locality"
-          />
-
-          <input
-            type="number"
-            value={filters.minPrice || ""}
-            onChange={(event) => setFilters({ ...filters, minPrice: event.target.value })}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm lg:col-span-1"
-            placeholder="Min"
-          />
-
-          <input
-            type="number"
-            value={filters.maxPrice || ""}
-            onChange={(event) => setFilters({ ...filters, maxPrice: event.target.value })}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm lg:col-span-1"
-            placeholder="Max"
-          />
-
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 lg:col-span-1">
-            <label className="inline-flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={Boolean(filters.verifiedOnly)}
-                onChange={(event) =>
-                  setFilters({ ...filters, verifiedOnly: event.target.checked })
-                }
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              Verified
-            </label>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 lg:col-span-1">
-            <label className="inline-flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={Boolean(filters.deliveryAvailable)}
-                onChange={(event) =>
-                  setFilters({ ...filters, deliveryAvailable: event.target.checked })
-                }
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              Delivery
-            </label>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-slate-900">Categories</h2>
-          <Link
-            href="/#explore-rentals"
-            className="text-sm font-medium text-orange-700 hover:text-orange-800"
-          >
-            Explore rentals
-          </Link>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => {
-            const Icon = iconMap[category.key] || PartyPopper;
-            return (
-              <Link
-                key={category.key}
-                href={`/categories/${category.key}`}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="rounded-xl bg-orange-100 p-2 text-orange-700">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="font-medium text-slate-900">{category.label}</p>
-                    <p className="text-xs text-slate-500">
-                      {category.subcategories.length} sub-types
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-slate-900">Use-Case Collections</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {collections.map((collection) => (
-            <Link
-              href={`/?q=${encodeURIComponent(collection)}#explore-rentals`}
-              key={collection}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm hover:border-orange-200"
-            >
-              {collection}
-            </Link>
-          ))}
-        </div>
-      </section>
+      <AnimatedSection delay={0.05}>
+        <CategoryShowcase categories={categories} />
+      </AnimatedSection>
 
       <section className="space-y-4 pb-8">
-        <h2 className="text-xl font-semibold text-slate-900">Listings Near You</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-slate-900">Fresh Listings Near You</h2>
+          <Link
+            href={selectedCity ? `/search?city=${encodeURIComponent(selectedCity)}` : "/search"}
+            className="accent-text text-sm font-medium hover:text-[color:var(--accent-hover)]"
+          >
+            Browse all
+          </Link>
+        </div>
         {listingsQuery.isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: INITIAL_VISIBLE_LISTINGS }).map((_, index) => (
               <SkeletonCard key={index} />
             ))}
           </div>
         ) : listings.length === 0 ? (
           <EmptyState
             title="No listings found"
-            description="Try broadening your filter values to discover nearby inventory."
+            description={
+              selectedCity
+                ? `No listings are available in ${selectedCity} yet. Try another location or explore all categories.`
+                : "Try exploring categories to discover nearby inventory."
+            }
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((listing) => (
-              <ListingCard key={listing._id} listing={listing} />
-            ))}
-          </div>
+          <FreshListingsGrid key={selectedCity || "all-locations"} listings={listings} />
         )}
       </section>
     </div>

@@ -17,7 +17,10 @@ export default function ListingsPage() {
     if (!params.get("availability")) {
       params.set("availability", "available");
     }
-    setQueryString(params.toString());
+    const timer = window.setTimeout(() => {
+      setQueryString(params.toString());
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const listingsQuery = useQuery({
@@ -32,13 +35,13 @@ export default function ListingsPage() {
       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
         <h1 className="text-xl font-semibold text-slate-900">Explore Rentals</h1>
         <p className="text-sm text-slate-500">
-          Filter controls are now on Home for a faster mobile-first flow.
+          Use Search or Category pages for advanced filtering.
         </p>
         <Link
-          href="/#explore-rentals"
+          href="/search"
           className="mt-2 inline-flex rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
         >
-          Open Home Filters
+          Open Search Filters
         </Link>
       </div>
 
@@ -51,7 +54,7 @@ export default function ListingsPage() {
       ) : listings.length === 0 ? (
         <EmptyState
           title="No listings found"
-          description="Try home filters with a broader city or price range."
+          description="Try search or category filters with a broader city or price range."
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
