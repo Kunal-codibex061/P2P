@@ -9,4 +9,3 @@ backend/node_modules
 backend/dist
 backend/uploads
 uploads
-docker-compose.yml
