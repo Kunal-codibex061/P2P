@@ -66,3 +66,25 @@ textarea:focus-visible {
 .accent-hover-border-soft:hover {
   border-color: var(--accent-border);
 }
+
+.hero-contour {
+  background-image:
+    radial-gradient(ellipse at center, transparent 0 21%, rgba(15, 23, 42, 0.04) 21.4% 21.8%, transparent 22.2%),
+    radial-gradient(ellipse at center, transparent 0 33%, rgba(15, 23, 42, 0.035) 33.4% 33.8%, transparent 34.2%),
+    radial-gradient(ellipse at center, transparent 0 48%, rgba(15, 23, 42, 0.03) 48.4% 48.8%, transparent 49.2%);
+  background-size: 920px 620px;
+  background-position: 50% 5rem;
+}
+
+.hero-orbit-grid {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 72% 28%, rgba(132, 204, 22, 0.22), transparent 26%),
+    radial-gradient(circle at 18% 70%, rgba(0, 120, 250, 0.14), transparent 30%);
+  background-size:
+    42px 42px,
+    42px 42px,
+    100% 100%,
+    100% 100%;
+}

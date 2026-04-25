@@ -211,7 +211,7 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                         <div
                           className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
                             mine
-                              ? "bg-slate-900 text-white"
+                              ? "bg-slate-900 !text-white"
                               : "border border-slate-200 bg-white text-slate-800"
                           }`}
                         >
@@ -256,7 +256,7 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                     <button
                       type="button"
                       onClick={() => draft.trim() && sendMessage.mutate(draft.trim())}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white hover:bg-slate-700"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 !text-white hover:bg-slate-700"
                     >
                       <Send className="h-4 w-4" />
                     </button>

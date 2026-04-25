@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, MapPin, ShieldCheck, Star } from "lucide-react";
 import { RequestModal, type RequestFormPayload } from "@/components/request-modal";
@@ -11,15 +11,21 @@ import { TrustBadge } from "@/components/ui/trust-badge";
 import { useAuth } from "@/components/auth-provider";
 import { api, ApiError } from "@/lib/api";
 import { LISTING_IMAGE_FALLBACK_URL } from "@/lib/config";
+import { mergeRentalIntent, readRentalIntentFromParams, readStoredRentalIntent } from "@/lib/rental-intent";
 import { formatCurrency, getId } from "@/lib/utils";
 import type { Conversation, Listing, RentalRequest, User } from "@/types/domain";
 
 export default function ListingDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { user, token } = useAuth();
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const initialRentalIntent = useMemo(
+    () => mergeRentalIntent(readStoredRentalIntent(), readRentalIntentFromParams(new URLSearchParams(searchParams.toString()))),
+    [searchParams],
+  );
 
   const listingQuery = useQuery({
     queryKey: ["listing", params.id],
@@ -222,14 +228,14 @@ export default function ListingDetailPage() {
           {myRequest && conversationForRequest ? (
             <Link
               href={`/chat/${conversationForRequest._id}`}
-              className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+              className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold !text-white hover:bg-slate-700"
             >
               Chat
             </Link>
           ) : (
             <button
               onClick={() => setShowRequestModal(true)}
-              className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+              className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold !text-white hover:bg-slate-700"
             >
               Request Item
             </button>
@@ -264,11 +270,17 @@ export default function ListingDetailPage() {
         </div>
       </aside>
 
-      <RequestModal
-        open={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
-        onSubmit={handleRequestSubmit}
-      />
+      {showRequestModal ? (
+        <RequestModal
+          open={showRequestModal}
+          onClose={() => setShowRequestModal(false)}
+          onSubmit={handleRequestSubmit}
+          initialDates={{
+            startDate: initialRentalIntent.startDate,
+            endDate: initialRentalIntent.endDate,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

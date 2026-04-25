@@ -116,6 +116,21 @@ router.post(
       });
     }
 
+    const overlappingCommittedRequest = await RentalRequest.findOne({
+      listingId: listing._id,
+      status: { $in: ["accepted", "confirmed", "active", "return_pending"] },
+      startDate: { $lt: payload.endDate },
+      endDate: { $gt: payload.startDate },
+    })
+      .select("_id")
+      .lean();
+
+    if (overlappingCommittedRequest) {
+      return res.status(409).json({
+        message: "This item is already booked for the selected dates.",
+      });
+    }
+
     const request = await RentalRequest.create({
       listingId: listing._id,
       renterId: req.user?._id,

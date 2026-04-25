@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Listing, User } from "../models";
+import { Listing, RentalRequest, User } from "../models";
 import { requireAuth } from "../middleware/auth";
 import { asyncHandler } from "../utils/http";
 
@@ -46,6 +46,8 @@ interface ListingQueryFilters {
   locality?: string;
   minPrice?: number;
   maxPrice?: number;
+  startDate?: Date;
+  endDate?: Date;
   availability?: string;
   verifiedOnly?: boolean;
   deliveryAvailable?: boolean;
@@ -103,6 +105,13 @@ function parseNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function parseDate(value: unknown): Date | undefined {
+  const next = firstQueryValue(value);
+  if (!next) return undefined;
+  const parsed = new Date(next);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 function parseListingQueryFilters(query: Record<string, unknown>): ListingQueryFilters {
   const specFilters: Record<string, string[]> = {};
 
@@ -122,6 +131,8 @@ function parseListingQueryFilters(query: Record<string, unknown>): ListingQueryF
     locality: firstQueryValue(query.locality),
     minPrice: parseNumber(query.minPrice),
     maxPrice: parseNumber(query.maxPrice),
+    startDate: parseDate(query.startDate),
+    endDate: parseDate(query.endDate),
     availability: firstQueryValue(query.availability),
     verifiedOnly: parseBoolean(query.verifiedOnly),
     deliveryAvailable: parseBoolean(query.deliveryAvailable),
@@ -175,6 +186,23 @@ function buildListingsMongoQuery(filters: ListingQueryFilters): Record<string, u
   return query;
 }
 
+async function excludeUnavailableListings(
+  query: Record<string, unknown>,
+  filters: ListingQueryFilters,
+) {
+  if (!filters.startDate || !filters.endDate || filters.endDate <= filters.startDate) return;
+
+  const unavailableListingIds = await RentalRequest.distinct("listingId", {
+    status: { $in: ["accepted", "confirmed", "active", "return_pending"] },
+    startDate: { $lt: filters.endDate },
+    endDate: { $gt: filters.startDate },
+  });
+
+  if (unavailableListingIds.length > 0) {
+    query._id = { $nin: unavailableListingIds };
+  }
+}
+
 function toFacetOptions(buckets: Map<string, number>) {
   return Array.from(buckets.entries())
     .map(([value, count]) => ({ value, count }))
@@ -193,6 +221,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const filters = parseListingQueryFilters(req.query as Record<string, unknown>);
     const query = buildListingsMongoQuery(filters);
+    await excludeUnavailableListings(query, filters);
 
     const listings = await Listing.find(query)
       .populate("ownerId", "name profilePhoto city locality kycStatus lenderRating isPhoneVerified")
@@ -208,6 +237,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const filters = parseListingQueryFilters(req.query as Record<string, unknown>);
     const query = buildListingsMongoQuery(filters);
+    await excludeUnavailableListings(query, filters);
 
     const listings = await Listing.find(query)
       .select("subcategory condition city locality rentUnit rentPrice specifications")

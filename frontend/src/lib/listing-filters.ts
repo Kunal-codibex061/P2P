@@ -5,6 +5,8 @@ export interface ListingFiltersV2 {
   locality?: string;
   minPrice?: string;
   maxPrice?: string;
+  startDate?: string;
+  endDate?: string;
   verifiedOnly?: boolean;
   deliveryAvailable?: boolean;
   subcategories: string[];
@@ -39,6 +41,8 @@ export function createDefaultListingFilters(overrides?: Partial<ListingFiltersV2
     locality: overrides?.locality,
     minPrice: overrides?.minPrice,
     maxPrice: overrides?.maxPrice,
+    startDate: overrides?.startDate,
+    endDate: overrides?.endDate,
     verifiedOnly: overrides?.verifiedOnly,
     deliveryAvailable: overrides?.deliveryAvailable,
     subcategories: overrides?.subcategories || [],
@@ -67,6 +71,8 @@ export function parseListingFiltersFromParams(
     locality: normalizeSingle(params.get("locality")),
     minPrice: normalizeSingle(params.get("minPrice")),
     maxPrice: normalizeSingle(params.get("maxPrice")),
+    startDate: normalizeSingle(params.get("startDate")),
+    endDate: normalizeSingle(params.get("endDate")),
     verifiedOnly: params.get("verifiedOnly") === "true",
     deliveryAvailable: params.get("deliveryAvailable") === "true",
     subcategories: parseRepeated(params, "subcategory"),
@@ -89,6 +95,8 @@ export function serializeListingFiltersToParams(
   if (filters.locality) params.set("locality", filters.locality);
   if (filters.minPrice) params.set("minPrice", filters.minPrice);
   if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+  if (filters.startDate) params.set("startDate", filters.startDate);
+  if (filters.endDate) params.set("endDate", filters.endDate);
   if (filters.verifiedOnly) params.set("verifiedOnly", "true");
   if (filters.deliveryAvailable) params.set("deliveryAvailable", "true");
   filters.subcategories.forEach((subcategory) => params.append("subcategory", subcategory));
@@ -119,7 +127,7 @@ export function toListingsApiQueryString(
   if (options?.fixedCategory) {
     params.set("category", options.fixedCategory);
   }
-  if (!params.get("availability")) {
+  if (!params.get("availability") && !(filters.startDate && filters.endDate)) {
     params.set("availability", "available");
   }
   return params.toString();
@@ -154,6 +162,7 @@ export function countActiveFilters(
   if (filters.locality) count += 1;
   if (filters.minPrice) count += 1;
   if (filters.maxPrice) count += 1;
+  if (filters.startDate && filters.endDate) count += 1;
   if (filters.verifiedOnly) count += 1;
   if (filters.deliveryAvailable) count += 1;
   count += filters.subcategories.length;

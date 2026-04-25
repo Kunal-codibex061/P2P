@@ -114,7 +114,7 @@ export default function RequestedItemsPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                   activeTab === tab.key
-                    ? "bg-slate-900 text-white"
+                    ? "bg-slate-900 !text-white"
                     : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
                 }`}
               >
@@ -217,7 +217,7 @@ export default function RequestedItemsPage() {
                 type="button"
                 disabled={updateMutation.isPending}
                 onClick={() => editDraft && updateMutation.mutate(editDraft)}
-                className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+                className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold !text-white hover:bg-slate-700 disabled:opacity-60"
               >
                 Save Changes
               </button>

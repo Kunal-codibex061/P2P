@@ -64,7 +64,7 @@ export function MatchingListings({ listings }: MatchingListingsProps) {
                 </Link>
                 <Link
                   href={`/listings/${listing._id}`}
-                  className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700"
+                  className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold !text-white hover:bg-slate-700"
                 >
                   Request This Item
                 </Link>

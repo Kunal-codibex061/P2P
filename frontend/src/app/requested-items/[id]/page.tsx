@@ -152,7 +152,7 @@ export default function RequestedItemDetailPage() {
                         {chatConversation ? (
                           <Link
                             href={`/chat/${chatConversation._id}`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+                            className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold !text-white hover:bg-slate-700"
                           >
                             <MessageSquare className="h-3.5 w-3.5" />
                             Chat

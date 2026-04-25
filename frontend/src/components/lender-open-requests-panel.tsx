@@ -142,7 +142,7 @@ export function LenderOpenRequestsPanel() {
                       message: `Hi, I can help with "${request.title}".`,
                     })
                   }
-                  className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+                  className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold !text-white hover:bg-slate-700"
                 >
                   <MessageSquare className="h-3.5 w-3.5" />
                   Respond
@@ -226,7 +226,7 @@ export function LenderOpenRequestsPanel() {
                 }
                 respondMutation.mutate();
               }}
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold !text-white hover:bg-slate-700 disabled:opacity-60"
             >
               {respondMutation.isPending
                 ? "Sending..."

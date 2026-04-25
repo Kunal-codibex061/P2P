@@ -10,10 +10,15 @@ import { LandingHero } from "@/components/landing/landing-hero";
 import { ListingCard } from "@/components/listing-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton-card";
+import {
+  readStoredRentalIntent,
+  RENTAL_INTENT_CHANGE_EVENT,
+  SEARCH_CITY_CHANGE_EVENT,
+  SEARCH_CITY_STORAGE_KEY,
+  type RentalIntent,
+} from "@/lib/rental-intent";
 import type { Category, Listing } from "@/types/domain";
 
-const SEARCH_CITY_STORAGE_KEY = "rentora-search-city";
-const SEARCH_CITY_CHANGE_EVENT = "rentora-search-city-changed";
 const INITIAL_VISIBLE_LISTINGS = 12;
 const LOAD_MORE_LISTINGS_STEP = 12;
 
@@ -61,27 +66,29 @@ function FreshListingsGrid({ listings }: { listings: Listing[] }) {
 }
 
 export function HomePageContent() {
-  const [selectedCity, setSelectedCity] = useState(() =>
-    typeof window !== "undefined"
-      ? (window.localStorage.getItem(SEARCH_CITY_STORAGE_KEY) || "").trim()
-      : "",
-  );
+  const [rentalIntent, setRentalIntent] = useState<RentalIntent>(() => readStoredRentalIntent());
+  const selectedCity = rentalIntent.city || "";
 
   useEffect(() => {
-    function syncCityFromStorage() {
-      setSelectedCity((window.localStorage.getItem(SEARCH_CITY_STORAGE_KEY) || "").trim());
+    function syncIntentFromStorage() {
+      setRentalIntent(readStoredRentalIntent());
     }
 
     function onStorage(event: StorageEvent) {
       if (event.key === SEARCH_CITY_STORAGE_KEY) {
-        setSelectedCity((event.newValue || "").trim());
+        setRentalIntent((current) => ({
+          ...current,
+          city: (event.newValue || "").trim() || undefined,
+        }));
       }
     }
 
-    window.addEventListener(SEARCH_CITY_CHANGE_EVENT, syncCityFromStorage);
+    window.addEventListener(SEARCH_CITY_CHANGE_EVENT, syncIntentFromStorage);
+    window.addEventListener(RENTAL_INTENT_CHANGE_EVENT, syncIntentFromStorage);
     window.addEventListener("storage", onStorage);
     return () => {
-      window.removeEventListener(SEARCH_CITY_CHANGE_EVENT, syncCityFromStorage);
+      window.removeEventListener(SEARCH_CITY_CHANGE_EVENT, syncIntentFromStorage);
+      window.removeEventListener(RENTAL_INTENT_CHANGE_EVENT, syncIntentFromStorage);
       window.removeEventListener("storage", onStorage);
     };
   }, []);
@@ -92,11 +99,13 @@ export function HomePageContent() {
   });
 
   const listingsQuery = useQuery({
-    queryKey: ["home-listings-available", selectedCity],
+    queryKey: ["home-listings-available", rentalIntent.city, rentalIntent.startDate, rentalIntent.endDate],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set("availability", "available");
-      if (selectedCity) params.set("city", selectedCity);
+      if (rentalIntent.city) params.set("city", rentalIntent.city);
+      if (rentalIntent.startDate) params.set("startDate", rentalIntent.startDate);
+      if (rentalIntent.endDate) params.set("endDate", rentalIntent.endDate);
       return api.get<Listing[]>(`/api/listings?${params.toString()}`);
     },
   });
@@ -106,14 +115,14 @@ export function HomePageContent() {
   const previewListings = listings.slice(0, 6);
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:py-8">
+    <div className="flex w-full flex-col gap-8 overflow-hidden">
       <LandingHero listings={previewListings} categories={categories} />
 
       <AnimatedSection delay={0.05}>
         <CategoryShowcase categories={categories} />
       </AnimatedSection>
 
-      <section className="space-y-4 pb-8">
+      <section className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-8">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-slate-900">Fresh Listings Near You</h2>
           <Link

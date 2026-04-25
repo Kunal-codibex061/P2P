@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { categoryImageMap } from "@/lib/category-media";
 import type { Category } from "@/types/domain";
@@ -14,25 +15,27 @@ export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
   const categoryFallback = "/images/categories/furniture.jpg";
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900">Explore by Category</h2>
-        <Link href="/explore" className="accent-text text-sm font-medium hover:text-[color:var(--accent-hover)]">
+    <section className="mx-auto w-full max-w-7xl space-y-5 px-4 pt-12">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Browse lanes</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">Pick a need, not a catalog aisle</h2>
+        </div>
+        <Link href="/explore" className="shrink-0 text-sm font-black text-blue-700 hover:text-blue-900">
           View all categories
         </Link>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category, index) => {
             const media = categoryImageMap[category.key];
             const card = (
               <Link
                 key={category.key}
                 href={`/categories/${category.key}`}
-                className="group block h-full rounded-2xl border border-slate-100 bg-slate-50 p-3 transition accent-hover-border-soft hover:bg-white"
+                className="group grid h-full grid-cols-[7rem_minmax(0,1fr)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg"
               >
-                <div className="mb-3 h-28 overflow-hidden rounded-xl bg-slate-100">
+                <div className="h-28 overflow-hidden rounded-xl bg-slate-100">
                   <img
                     src={media?.imageUrl}
                     alt={media?.alt || category.label}
@@ -43,8 +46,17 @@ export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
                     }}
                   />
                 </div>
-                <p className="line-clamp-2 text-sm font-semibold text-slate-900">{category.label}</p>
-                <p className="mt-1 text-xs text-slate-500">{category.subcategories.length} subcategories</p>
+                <div className="flex min-w-0 flex-col justify-between p-3">
+                  <div>
+                    <p className="line-clamp-2 text-base font-black text-slate-950">{category.label}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                      {category.subcategories.length} focused collections
+                    </p>
+                  </div>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-black text-blue-700">
+                    Browse <ArrowUpRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
               </Link>
             );
 
@@ -63,7 +75,6 @@ export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
               </motion.div>
             );
           })}
-        </div>
       </div>
     </section>
   );

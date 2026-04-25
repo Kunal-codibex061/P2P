@@ -55,7 +55,7 @@ export function CategoryPageContent({ slug }: { slug: string }) {
       category?.label
         ? toListingsApiQueryString(filters, { fixedCategory: category.label })
         : "",
-    [filters, category?.label],
+    [filters, category],
   );
 
   const listingsQuery = useQuery({

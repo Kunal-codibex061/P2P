@@ -1,12 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import Typewriter from "typewriter-effect";
-import { categoryImageMap } from "@/lib/category-media";
 import { formatCurrency } from "@/lib/utils";
 import type { Category, Listing } from "@/types/domain";
 
@@ -15,229 +11,145 @@ interface LandingHeroProps {
   categories: Category[];
 }
 
-const typewriterPhrases = [
-  "Find camera",
-  "Find sofa",
-  "Find projector",
-  "Find party lights",
-  "Find drill machine",
-];
-
-const quickCategoryPills = [
-  { label: "Cameras", query: "camera" },
-  { label: "Tools", query: "tools" },
-  { label: "Furniture", query: "furniture" },
-  { label: "Event Gear", query: "event gear" },
-  { label: "Laptops", query: "laptop" },
-  { label: "Speakers", query: "speaker" },
-  { label: "Projectors", query: "projector" },
-  { label: "Gaming", query: "gaming console" },
-  { label: "Appliances", query: "home appliances" },
-  { label: "Outdoor", query: "camping gear" },
-  { label: "Power Backup", query: "inverter" },
-  { label: "Cleaning", query: "vacuum cleaner" },
-];
-
-export function LandingHero({ listings, categories }: LandingHeroProps) {
-  const router = useRouter();
-  const shouldReduceMotion = useReducedMotion();
-  const [searchText, setSearchText] = useState("");
-  const categoryFallback = "/images/categories/furniture.jpg";
-
-  const heroListings = useMemo(() => listings.slice(0, 3), [listings]);
-  const fallbackCards = useMemo(
-    () =>
-      categories.slice(0, 3).map((category) => ({
-        title: category.label,
-        image: categoryImageMap[category.key]?.imageUrl || "",
-      })),
-    [categories],
-  );
-  function submitSearch(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const query = searchText.trim();
-    if (!query) return;
-    router.push(`/search?q=${encodeURIComponent(query)}`);
-  }
+function DealBoard({ listings }: { listings: Listing[] }) {
+  const previewListings = listings.slice(0, 4);
+  if (previewListings.length === 0) return null;
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border accent-border-soft bg-gradient-to-br from-[color:var(--accent-soft)] via-white to-sky-50 p-6 shadow-sm sm:p-10 lg:h-[calc(100svh-8.5rem)]">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#0078FA]/20 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-[#0078FA]/12 blur-3xl" />
-
-      <div className="grid items-start gap-8 lg:h-full lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-6 lg:space-y-7 lg:py-2">
-          <div className="space-y-4">
-            <h1 className="max-w-xl text-3xl font-bold tracking-tight leading-[1.04] text-slate-900 sm:text-5xl">
-              Rent useful things from verified neighbors in minutes.
-            </h1>
-            <p className="max-w-xl text-sm text-slate-600 sm:text-base">
-              Cameras, tools, furniture, electronics, and event gear - local, dependable, and
-              designed around trust.
+    <div className="mx-auto grid w-full max-w-6xl gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {previewListings.map((listing) => (
+        <Link
+          key={listing._id}
+          href={`/listings/${listing._id}`}
+          className="group grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-200 bg-white/92 p-2.5 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
+        >
+          <img
+            src={listing.photos[0] || "/images/categories/furniture.jpg"}
+            alt={listing.title}
+            className="h-20 w-20 rounded-xl object-cover"
+          />
+          <div className="min-w-0 py-1">
+            <p className="line-clamp-1 text-sm font-black text-slate-950">{listing.title}</p>
+            <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-slate-500">
+              <MapPin className="h-3.5 w-3.5" />
+              <span className="truncate">
+                {listing.locality}, {listing.city}
+              </span>
+            </p>
+            <p className="mt-2 inline-flex rounded-full bg-lime-100 px-2.5 py-1 text-xs font-black text-lime-950">
+              {formatCurrency(listing.rentPrice)} / {listing.rentUnit}
             </p>
           </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
 
-          <form onSubmit={submitSearch} className="max-w-xl rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Search className="ml-2 h-4 w-4 text-slate-400" />
-              <div className="relative w-full">
-                {!shouldReduceMotion && !searchText ? (
-                  <span className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                    <Typewriter
-                      options={{
-                        autoStart: true,
-                        loop: true,
-                        delay: 60,
-                        deleteSpeed: 40,
-                        cursor: "|",
-                      }}
-                      onInit={(typewriter) => {
-                        typewriter
-                          .typeString(typewriterPhrases[0])
-                          .pauseFor(1400)
-                          .deleteAll()
-                          .typeString(typewriterPhrases[1])
-                          .pauseFor(1400)
-                          .deleteAll()
-                          .typeString(typewriterPhrases[2])
-                          .pauseFor(1400)
-                          .deleteAll()
-                          .typeString(typewriterPhrases[3])
-                          .pauseFor(1400)
-                          .deleteAll()
-                          .typeString(typewriterPhrases[4])
-                          .pauseFor(1400)
-                          .deleteAll()
-                          .start();
-                      }}
-                    />
-                  </span>
-                ) : null}
-                <input
-                  value={searchText}
-                  onChange={(event) => setSearchText(event.target.value)}
-                  placeholder={shouldReduceMotion ? "Find camera, sofa, projector..." : ""}
-                  className="w-full bg-transparent py-2 text-sm text-slate-800"
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium !text-white transition hover:bg-slate-700"
+export function LandingHero({ listings }: LandingHeroProps) {
+  const shouldReduceMotion = useReducedMotion();
+
+  return (
+    <section className="relative overflow-hidden bg-[#f7fbff]">
+      <div className="pointer-events-none absolute inset-0 hero-orbit-grid opacity-80" />
+      <div className="pointer-events-none absolute left-1/2 top-28 h-[42rem] w-[42rem] -translate-x-1/2 rounded-full border border-blue-100/80" />
+      <div className="pointer-events-none absolute left-1/2 top-40 h-[30rem] w-[30rem] -translate-x-1/2 rounded-full border border-lime-200/70" />
+
+      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-4.5rem)] w-full max-w-7xl flex-col px-4 pb-8 pt-12 sm:pt-16 lg:pt-20">
+        <div className="grid flex-1 items-center gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+          <motion.div
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+            className="max-w-2xl"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-4 py-2 text-sm font-black text-blue-900 shadow-sm">
+              <Sparkles className="h-4 w-4 text-blue-700" />
+              Local rentals, chosen by date
+            </div>
+
+            <h1 className="mt-6 text-balance text-5xl font-black leading-[0.96] text-slate-950 sm:text-6xl lg:text-7xl">
+              Rent what you need.
+              <span className="block text-blue-700">Nearby.</span>
+              <span className="block">For the days you need it.</span>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-base font-semibold leading-7 text-slate-600 sm:text-lg">
+              Borrow cameras, tools, event gear, appliances, and everyday essentials from verified
+              people around you, without buying things you only need once.
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link
+                href="/search"
+                className="inline-flex items-center gap-2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black !text-white transition hover:bg-blue-800"
               >
-                Search
-                <ArrowRight className="h-4 w-4 text-white" />
-              </button>
+                Start searching <ArrowRight className="h-4 w-4 !text-white" />
+              </Link>
+              <Link
+                href="/listings/new"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:border-lime-300 hover:bg-lime-50"
+              >
+                List your item
+              </Link>
             </div>
-          </form>
 
-          <div className="flex flex-wrap gap-2.5">
-            <Link
-              href="/explore"
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium !text-white hover:bg-slate-700"
-            >
-              Explore Rentals
-            </Link>
-            <Link
-              href="/listings/new"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            >
-              List Your Item
-            </Link>
-          </div>
-
-          <div className="max-w-xl">
-            <div className="flex flex-wrap gap-2">
-              {quickCategoryPills.map((pill, idx) => {
-                const pillNode = (
-                  <Link
-                    key={pill.label}
-                    href={`/search?q=${encodeURIComponent(pill.query)}`}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
-                  >
-                    {pill.label}
-                  </Link>
-                );
-                if (shouldReduceMotion) {
-                  return pillNode;
-                }
-                return (
-                  <motion.div
-                    key={pill.label}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + idx * 0.05, duration: 0.24 }}
-                  >
-                    {pillNode}
-                  </motion.div>
-                );
-              })}
+            <div className="mt-8 grid max-w-lg gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white/78 p-4 shadow-sm backdrop-blur">
+                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                <p className="mt-2 text-sm font-black text-slate-950">Verified-first trust</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Profiles, deposits, and in-app chat.</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white/78 p-4 shadow-sm backdrop-blur">
+                <CalendarDays className="h-5 w-5 text-blue-700" />
+                <p className="mt-2 text-sm font-black text-slate-950">Built around dates</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Search by city, item, and rental window.</p>
+              </div>
             </div>
-          </div>
+          </motion.div>
 
+          <motion.div
+            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1 }}
+            transition={{ duration: 0.55, delay: 0.08 }}
+            className="relative min-h-[26rem] lg:min-h-[34rem]"
+          >
+            <div className="absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 shadow-[0_30px_100px_rgba(15,23,42,0.10)]" />
+            <div className="absolute left-1/2 top-1/2 h-[19rem] w-[19rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-100/70" />
+            <motion.img
+              src="/images/hero/rental-gear-cutouts.png"
+              alt="Rental gear including cameras, tools, gaming and event equipment"
+              animate={
+                shouldReduceMotion
+                  ? undefined
+                  : {
+                      y: [0, -10, 0],
+                      rotate: [-1, 1, -1],
+                    }
+              }
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute left-1/2 top-1/2 w-[min(740px,92vw)] -translate-x-1/2 -translate-y-1/2"
+            />
+            <div className="absolute bottom-8 left-4 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-lg backdrop-blur sm:left-10">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">This week</p>
+              <p className="mt-1 text-2xl font-black text-slate-950">{listings.length || 36}</p>
+              <p className="text-xs font-semibold text-slate-500">available local items</p>
+            </div>
+            <div className="absolute right-2 top-8 rounded-2xl border border-lime-200 bg-lime-100/90 p-4 shadow-lg backdrop-blur sm:right-10">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime-800">Rent smart</p>
+              <p className="mt-1 text-sm font-black text-lime-950">Pay for use, not ownership</p>
+            </div>
+          </motion.div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-sm lg:h-full">
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#66B2FF]/40 to-[#B8D9FF]/35 blur-2xl" />
-          <div className="relative space-y-3 lg:flex lg:h-full lg:flex-col">
-            {(heroListings.length > 0
-              ? heroListings.map((listing) => ({
-                  title: listing.title,
-                  image: listing.photos[0] || "",
-                  price: `${formatCurrency(listing.rentPrice)} / ${listing.rentUnit}`,
-                  locality: `${listing.locality}, ${listing.city}`,
-                }))
-              : fallbackCards.map((card) => ({
-                  title: card.title,
-                  image: card.image,
-                  price: "Fresh rentals daily",
-                  locality: "Tap to explore listings",
-                }))
-            ).map((card, index) => {
-              const cardNode = (
-                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
-                  <div className="h-24 bg-slate-100 sm:h-28 xl:h-32">
-                    {card.image ? (
-                      <img
-                        src={card.image}
-                        alt={card.title}
-                        className="h-full w-full object-cover"
-                        onError={(event) => {
-                          event.currentTarget.onerror = null;
-                          event.currentTarget.src = categoryFallback;
-                        }}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="space-y-1 p-2.5">
-                    <p className="line-clamp-1 text-sm font-semibold text-slate-900">{card.title}</p>
-                    <p className="text-xs font-medium text-slate-700">{card.price}</p>
-                    <p className="text-xs text-slate-500">{card.locality}</p>
-                  </div>
-                </div>
-              );
-
-              if (shouldReduceMotion) {
-                return (
-                  <div key={`${card.title}-${index}`} className="lg:flex-1">
-                    {cardNode}
-                  </div>
-                );
-              }
-
-              return (
-                <motion.div
-                  key={`${card.title}-${index}`}
-                  initial={{ opacity: 0, y: 24, rotate: index % 2 === 0 ? -1.8 : 1.8 }}
-                  animate={{ opacity: 1, y: 0, rotate: index % 2 === 0 ? -1.8 : 1.8 }}
-                  transition={{ duration: 0.45, delay: 0.08 + index * 0.08 }}
-                  whileHover={{ y: -4, rotate: 0 }}
-                  className="lg:flex-1"
-                >
-                  {cardNode}
-                </motion.div>
-              );
-            })}
+        <div className="mt-4 pb-2">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">Deal board</p>
+            <Link href="/search" className="text-sm font-black text-blue-700 hover:text-blue-900">
+              View all
+            </Link>
           </div>
+          <DealBoard listings={listings} />
         </div>
       </div>
     </section>

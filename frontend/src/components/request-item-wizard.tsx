@@ -496,7 +496,7 @@ export function RequestItemWizard({ open, onClose, onSuccess }: RequestItemWizar
               type="button"
               disabled={createRequest.isPending}
               onClick={() => createRequest.mutate()}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold !text-white hover:bg-slate-700 disabled:opacity-60"
             >
               {createRequest.isPending ? (
                 <>
@@ -515,7 +515,7 @@ export function RequestItemWizard({ open, onClose, onSuccess }: RequestItemWizar
               type="button"
               disabled={!canContinue}
               onClick={() => setStep((prev) => prev + 1)}
-              className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold !text-white hover:bg-slate-700 disabled:opacity-50"
             >
               Continue
               <ChevronRight className="h-4 w-4" />

@@ -223,7 +223,7 @@ export function PublicItemRequestsPanel({
                         message: `Hi, I can help with "${request.title}". Before we proceed, can you confirm preferred timing and pickup/delivery details?`,
                       });
                     }}
-                    className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+                    className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold !text-white hover:bg-slate-700"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
                     Respond
@@ -245,7 +245,7 @@ export function PublicItemRequestsPanel({
                           onClick={() => setDraft((prev) => ({ ...prev, message: reply }))}
                           className={`rounded-full border px-2.5 py-1 text-xs transition ${
                             draft.message === reply
-                              ? "border-slate-900 bg-slate-900 text-white"
+                              ? "border-slate-900 bg-slate-900 !text-white"
                               : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
                           }`}
                         >
@@ -331,7 +331,7 @@ export function PublicItemRequestsPanel({
                           }
                           respondMutation.mutate();
                         }}
-                        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+                        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold !text-white hover:bg-slate-700 disabled:opacity-60"
                       >
                         {respondMutation.isPending
                           ? "Sending..."

@@ -59,7 +59,7 @@ export function FloatingActions() {
                   setFabMenuOpen(false);
                   setOpenRequestWizard(true);
                 }}
-                className="w-full rounded-xl bg-slate-900 px-3 py-2 text-left text-sm font-medium text-white hover:bg-slate-700"
+                className="w-full rounded-xl bg-slate-900 px-3 py-2 text-left text-sm font-medium !text-white hover:bg-slate-700"
               >
                 Request Item
               </button>
@@ -70,7 +70,7 @@ export function FloatingActions() {
             title="Quick actions"
             aria-label="Quick actions"
             onClick={() => setFabMenuOpen((prev) => !prev)}
-            className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:bg-slate-700"
+            className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 !text-white shadow-xl transition hover:bg-slate-700"
           >
             <Plus className="h-5 w-5" />
           </button>
