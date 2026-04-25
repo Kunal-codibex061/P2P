@@ -5,6 +5,8 @@ const userSchema = new Schema(
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    passwordHash: { type: String, trim: true, default: null },
+    passwordUpdatedAt: { type: Date, default: null },
     profilePhoto: { type: String, required: true },
     city: { type: String, required: true, index: true },
     locality: { type: String, required: true, index: true },

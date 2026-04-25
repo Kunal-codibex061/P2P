@@ -51,7 +51,7 @@ const updateStatusSchema = z.object({
 });
 
 const respondSchema = z.object({
-  listingId: z.string().optional(),
+  listingId: z.string().min(1),
   message: z.string().min(3),
   proposedRent: z.number().nonnegative().optional().default(0),
   proposedDeposit: z.number().nonnegative().optional().default(0),
@@ -416,24 +416,21 @@ router.post(
       return res.status(400).json({ message: "This request is no longer open for response." });
     }
 
-    let listing = null;
-    if (payload.listingId) {
-      listing = await Listing.findOne({
-        _id: payload.listingId,
-        ownerId: req.user?._id,
-      }).lean();
-      if (!listing) {
-        return res.status(403).json({ message: "You can only attach your own listing." });
-      }
+    const listing = await Listing.findOne({
+      _id: payload.listingId,
+      ownerId: req.user?._id,
+    }).lean();
+    if (!listing) {
+      return res.status(403).json({ message: "You can only attach your own listing." });
     }
 
     const response = await OpenRequestResponse.create({
       itemRequestId: itemRequest._id,
       lenderId: req.user?._id,
-      listingId: listing?._id || null,
+      listingId: listing._id,
       message: payload.message,
-      proposedRent: payload.proposedRent || listing?.rentPrice || itemRequest.budgetAmount,
-      proposedDeposit: payload.proposedDeposit || listing?.depositAmount || 0,
+      proposedRent: payload.proposedRent || listing.rentPrice || itemRequest.budgetAmount,
+      proposedDeposit: payload.proposedDeposit || listing.depositAmount || 0,
       status: "sent",
     });
 
@@ -443,15 +440,12 @@ router.post(
       lenderId: req.user?._id,
     };
     let conversation = await Conversation.findOne(conversationKey);
-    const responseText =
-      listing?.title
-        ? `Lender responded to your request with: ${listing.title}`
-        : "Lender responded to your open request.";
+    const responseText = `Lender responded to your request with: ${listing.title}`;
 
     if (!conversation) {
       conversation = await Conversation.create({
         ...conversationKey,
-        listingId: listing?._id || null,
+        listingId: listing._id,
         messages: [
           {
             senderId: req.user?._id,
@@ -468,7 +462,7 @@ router.post(
         ],
       });
     } else {
-      if (listing?._id && !conversation.listingId) {
+      if (!conversation.listingId) {
         conversation.listingId = listing._id;
       }
       conversation.messages.push({
@@ -493,7 +487,7 @@ router.post(
     if (conversation.messages.some((message) => message.type === "text")) {
       itemRequest.status = "chatting";
     }
-    if (listing) itemRequest.lenderId = response.lenderId;
+    itemRequest.lenderId = response.lenderId;
     await itemRequest.save();
 
     return res.status(201).json({

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, PlusSquare } from "lucide-react";
 import { api } from "@/lib/api";
+import { buildListingResponseHandoffHref } from "@/lib/listing-response-handoff";
 import { formatCurrency, shortDate } from "@/lib/utils";
 import { useAuth } from "./auth-provider";
 import type { ItemRequest, Listing } from "@/types/domain";
@@ -23,6 +25,7 @@ const initialResponseDraft: ResponseDraft = {
 };
 
 export function LenderOpenRequestsPanel() {
+  const router = useRouter();
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<ResponseDraft>(initialResponseDraft);
@@ -66,19 +69,23 @@ export function LenderOpenRequestsPanel() {
       api.post<{ conversationId: string }>(
         `/api/item-requests/${draft.itemRequestId}/respond`,
         {
-          listingId: draft.listingId || undefined,
+          listingId: draft.listingId,
           message: draft.message,
           proposedRent: selectedListing?.rentPrice || selectedRequest?.budgetAmount || 0,
           proposedDeposit: selectedListing?.depositAmount || 0,
         },
         token,
       ),
-    onSuccess: async () => {
+    onSuccess: async (response) => {
       setDraft(initialResponseDraft);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["lender-open-requests", user?._id] }),
         queryClient.invalidateQueries({ queryKey: ["item-requests", "my"] }),
+        queryClient.invalidateQueries({ queryKey: ["conversations", user?._id] }),
       ]);
+      if (response.data.conversationId) {
+        router.push(`/chat/${response.data.conversationId}`);
+      }
     },
   });
 
@@ -151,7 +158,7 @@ export function LenderOpenRequestsPanel() {
           <p className="text-sm font-semibold text-slate-900">Respond to renter request</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Respond with listing (optional)</span>
+              <span className="text-xs font-medium text-slate-600">Respond with listing (required)</span>
               <select
                 value={draft.listingId}
                 onChange={(event) =>
@@ -159,7 +166,7 @@ export function LenderOpenRequestsPanel() {
                 }
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               >
-                <option value="">Message only</option>
+                <option value="">Select listing</option>
                 {listingOptions.map((listing) => (
                   <option key={listing._id} value={listing._id}>
                     {listing.title}
@@ -185,6 +192,20 @@ export function LenderOpenRequestsPanel() {
           <div className="mt-3 flex justify-end gap-2">
             <button
               type="button"
+              onClick={() =>
+                router.push(
+                  buildListingResponseHandoffHref({
+                    respondToItemRequestId: draft.itemRequestId,
+                    responseMessage: draft.message,
+                  }),
+                )
+              }
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+            >
+              Create listing instead
+            </button>
+            <button
+              type="button"
               onClick={() => setDraft(initialResponseDraft)}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
             >
@@ -193,10 +214,25 @@ export function LenderOpenRequestsPanel() {
             <button
               type="button"
               disabled={respondMutation.isPending || draft.message.trim().length < 3}
-              onClick={() => respondMutation.mutate()}
+              onClick={() => {
+                if (!draft.listingId) {
+                  router.push(
+                    buildListingResponseHandoffHref({
+                      respondToItemRequestId: draft.itemRequestId,
+                      responseMessage: draft.message,
+                    }),
+                  );
+                  return;
+                }
+                respondMutation.mutate();
+              }}
               className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
             >
-              Send response
+              {respondMutation.isPending
+                ? "Sending..."
+                : draft.listingId
+                  ? "Respond and open chat"
+                  : "Create listing to continue"}
             </button>
           </div>
         </div>

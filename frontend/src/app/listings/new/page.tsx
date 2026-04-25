@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/config";
+import { readListingResponseHandoffParams } from "@/lib/listing-response-handoff";
 import type { Category, Listing } from "@/types/domain";
 
 const rentUnits = ["day", "week", "month"] as const;
@@ -59,7 +60,10 @@ const initialUploadingState: Record<PhotoAngleKey, boolean> = {
 
 export default function CreateListingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token } = useAuth();
+  const handoff = readListingResponseHandoffParams(searchParams);
+  const isRespondFlow = Boolean(handoff);
 
   const { data } = useQuery({
     queryKey: ["categories"],
@@ -167,6 +171,12 @@ export default function CreateListingPage() {
             Help renters trust your listing with complete angles, flexible pricing, and clear usage
             terms.
           </p>
+          {isRespondFlow ? (
+            <p className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+              Create this listing to continue the public request response flow. We will open chat
+              right after publishing.
+            </p>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -570,7 +580,39 @@ export default function CreateListingPage() {
                     specifications,
                   };
                   const response = await api.post<Listing>("/api/listings", payload, token);
-                  router.push(`/listings/${response.data._id}`);
+                  const createdListing = response.data;
+
+                  if (handoff) {
+                    const autoMessage =
+                      handoff.responseMessage.length >= 3
+                        ? handoff.responseMessage
+                        : `Hi, I have listed "${createdListing.title}" and can help with your request.`;
+
+                    try {
+                      const respondResult = await api.post<{ conversationId: string }>(
+                        `/api/item-requests/${handoff.respondToItemRequestId}/respond`,
+                        {
+                          listingId: createdListing._id,
+                          message: autoMessage,
+                          proposedRent: createdListing.rentPrice,
+                          proposedDeposit: createdListing.depositAmount,
+                        },
+                        token,
+                      );
+                      router.push(`/chat/${respondResult.data.conversationId}`);
+                      return;
+                    } catch (error) {
+                      alert(
+                        error instanceof Error
+                          ? `${error.message} Listing was created successfully; opening your listing now.`
+                          : "Listing was created, but we could not complete request response. Opening listing.",
+                      );
+                      router.push(`/listings/${createdListing._id}`);
+                      return;
+                    }
+                  }
+
+                  router.push(`/listings/${createdListing._id}`);
                 } catch (error) {
                   alert(error instanceof Error ? error.message : "Unable to create listing.");
                 } finally {

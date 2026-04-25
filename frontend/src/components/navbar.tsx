@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "./auth-provider";
 
 const locationOptions = ["", "Bengaluru", "Mumbai", "Delhi", "Pune"];
+const SEARCH_CITY_STORAGE_KEY = "rentora-search-city";
+const SEARCH_CITY_CHANGE_EVENT = "rentora-search-city-changed";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -39,12 +41,17 @@ export function Navbar() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
-    const savedCity = localStorage.getItem("rentora-search-city");
+    const savedCity = localStorage.getItem(SEARCH_CITY_STORAGE_KEY);
     if (savedCity) setSelectedCity(savedCity);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("rentora-search-city", selectedCity);
+    localStorage.setItem(SEARCH_CITY_STORAGE_KEY, selectedCity);
+    window.dispatchEvent(
+      new CustomEvent(SEARCH_CITY_CHANGE_EVENT, {
+        detail: { city: selectedCity },
+      }),
+    );
   }, [selectedCity]);
 
   useEffect(() => {

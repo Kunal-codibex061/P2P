@@ -9,6 +9,7 @@ import {
   User,
 } from "../models";
 import { connectDB } from "../utils/db";
+import { hashPassword } from "../utils/password";
 import { listingImageCatalog, listingTemplates, requestStatusSeed, seedUsers } from "./seedData";
 
 dotenv.config();
@@ -17,6 +18,8 @@ interface SeedOptions {
   force?: boolean;
   silent?: boolean;
 }
+
+const DEFAULT_DEMO_PASSWORD = "demo12345";
 
 const UNSPLASH_SEARCH_API = "https://unsplash.com/napi/search/photos";
 const UNSPLASH_TRANSFORM = "auto=format&fit=crop&w=1400&q=80";
@@ -148,7 +151,16 @@ async function fetchUnsplashPhotos(query: string): Promise<string[]> {
 export async function seedDatabase(options: SeedOptions = {}) {
   const { force = true, silent = false } = options;
   const existingUsers = await User.countDocuments();
+  const defaultPasswordHash = await hashPassword(DEFAULT_DEMO_PASSWORD);
+
   if (!force && existingUsers > 0) {
+    const updateResult = await User.updateMany(
+      { $or: [{ passwordHash: { $exists: false } }, { passwordHash: null }] },
+      { $set: { passwordHash: defaultPasswordHash } },
+    );
+    if (updateResult.modifiedCount > 0) {
+      log(`Backfilled demo password hash for ${updateResult.modifiedCount} users.`, silent);
+    }
     log("Seed skipped: data already exists.", silent);
     return;
   }
@@ -172,6 +184,7 @@ export async function seedDatabase(options: SeedOptions = {}) {
   const insertedUsers = await User.insertMany(
     seedUsers.map((user) => ({
       ...user,
+      passwordHash: defaultPasswordHash,
       createdAt: new Date(Date.now() - Math.floor(Math.random() * 1000 * 60 * 60 * 24 * 60)),
       updatedAt: new Date(),
     })),
