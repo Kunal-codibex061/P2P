@@ -10,7 +10,7 @@ import {
 } from "../models";
 import { connectDB } from "../utils/db";
 import { hashPassword } from "../utils/password";
-import { listingImageCatalog, listingTemplates, requestStatusSeed, seedUsers } from "./seedData";
+import { listingImageCatalog, listingTemplates, seedUsers } from "./seedData";
 
 dotenv.config();
 
@@ -18,8 +18,6 @@ interface SeedOptions {
   force?: boolean;
   silent?: boolean;
 }
-
-const DEFAULT_DEMO_PASSWORD = "demo12345";
 
 const UNSPLASH_SEARCH_API = "https://unsplash.com/napi/search/photos";
 const UNSPLASH_TRANSFORM = "auto=format&fit=crop&w=1400&q=80";
@@ -151,16 +149,8 @@ async function fetchUnsplashPhotos(query: string): Promise<string[]> {
 export async function seedDatabase(options: SeedOptions = {}) {
   const { force = true, silent = false } = options;
   const existingUsers = await User.countDocuments();
-  const defaultPasswordHash = await hashPassword(DEFAULT_DEMO_PASSWORD);
 
   if (!force && existingUsers > 0) {
-    const updateResult = await User.updateMany(
-      { $or: [{ passwordHash: { $exists: false } }, { passwordHash: null }] },
-      { $set: { passwordHash: defaultPasswordHash } },
-    );
-    if (updateResult.modifiedCount > 0) {
-      log(`Backfilled demo password hash for ${updateResult.modifiedCount} users.`, silent);
-    }
     log("Seed skipped: data already exists.", silent);
     return;
   }
@@ -181,19 +171,21 @@ export async function seedDatabase(options: SeedOptions = {}) {
   }
   await Conversation.collection.createIndex({ requestId: 1 }, { unique: true, sparse: true });
 
-  const insertedUsers = await User.insertMany(
-    seedUsers.map((user) => ({
+  const usersPayload = await Promise.all(
+    seedUsers.map(async ({ password, ...user }) => ({
       ...user,
-      passwordHash: defaultPasswordHash,
+      passwordHash: await hashPassword(password),
       createdAt: new Date(Date.now() - Math.floor(Math.random() * 1000 * 60 * 60 * 24 * 60)),
       updatedAt: new Date(),
     })),
   );
 
+  const insertedUsers = await User.insertMany(usersPayload);
+
   const lenderPool = insertedUsers.filter((user) => user.roleTags.includes("lender") || user.roleTags.includes("hybrid"));
 
   const listingsPayload = await Promise.all(listingTemplates.map(async (template, index) => {
-    const owner = lenderPool[index % lenderPool.length];
+    const owner = lenderPool[Math.floor(index / 2) % lenderPool.length];
     const curated = listingImageCatalog[template.title];
     const imageQuery = template.imageQuery || curated?.imageQuery || template.title;
     const searchedPhotos = (await fetchUnsplashPhotos(imageQuery)).map(normalizeListingImage);
@@ -227,165 +219,143 @@ export async function seedDatabase(options: SeedOptions = {}) {
   const insertedListings = await Listing.insertMany(listingsPayload);
 
   const renters = insertedUsers.filter((user) => user.roleTags.includes("renter") || user.roleTags.includes("hybrid"));
-  const requestPayload = requestStatusSeed.map((status, index) => {
-    const listing = insertedListings[index % insertedListings.length];
-    const renterCandidates = renters.filter((user) => String(user._id) !== String(listing.ownerId));
-    const renter = renterCandidates[index % renterCandidates.length];
-    const durationDays = 2 + (index % 7);
-    const startDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * (index % 5));
-    const endDate = new Date(startDate.getTime() + durationDays * 1000 * 60 * 60 * 24);
-
-    return {
-      listingId: listing._id,
-      renterId: renter._id,
-      lenderId: listing.ownerId,
-      startDate,
-      endDate,
-      message: "Hi, I need this for a short project and will handle it carefully.",
-      purpose: [
-        "Weekend house party",
-        "Creator shoot",
-        "Temporary WFH setup",
-        "Home deep-cleaning",
-        "Event setup",
-      ][index % 5],
-      pickupPreference: index % 2 === 0 ? "pickup" : "delivery",
-      status,
-      quotedRent: listing.rentPrice,
-      depositAmount: listing.depositAmount,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 1000 * 60 * 60 * 24 * 20)),
-      updatedAt: new Date(),
-    };
-  });
-
-  const insertedRequests = await RentalRequest.insertMany(requestPayload);
-
-  const conversationPayload = insertedRequests.slice(0, 12).map((request, index) => {
-    const listing = insertedListings.find((l) => String(l._id) === String(request.listingId));
-    const lender = insertedUsers.find((u) => String(u._id) === String(request.lenderId));
-    const renter = insertedUsers.find((u) => String(u._id) === String(request.renterId));
-    const messages = [
-      {
-        senderId: request.renterId,
-        text: `Rental request created for ${listing?.title || "this listing"}.`,
-        type: "system",
-        createdAt: new Date(Date.now() - 1000 * 60 * 30),
-      },
-      {
-        senderId: request.renterId,
-        text: "Hey! Is this available for my requested dates?",
-        type: "text",
-        createdAt: new Date(Date.now() - 1000 * 60 * 20),
-      },
-      {
-        senderId: request.lenderId,
-        text: "Yes, available. Could you share your usage purpose and pickup preference?",
-        type: "text",
-        createdAt: new Date(Date.now() - 1000 * 60 * 15),
-      },
-      {
-        senderId: request.renterId,
-        text: "Sure, I can pick up today evening and return on time.",
-        type: "text",
-        createdAt: new Date(Date.now() - 1000 * 60 * 8),
-      },
-    ];
-    if (index % 3 === 0 && lender) {
-      messages.push({
-        senderId: lender._id,
-        text: "Great. Please keep all communication and payment updates inside the app.",
-        type: "text",
-        createdAt: new Date(Date.now() - 1000 * 60 * 5),
-      });
-    }
-    return {
-      requestId: request._id,
-      listingId: request.listingId,
-      renterId: request.renterId,
-      lenderId: request.lenderId,
-      messages,
-      createdAt: new Date(Date.now() - 1000 * 60 * 30),
-      updatedAt: new Date(),
-      _meta: { renterName: renter?.name, lenderName: lender?.name },
-    };
-  });
-
-  await Conversation.insertMany(
-    conversationPayload.map(({ _meta: _unused, ...rest }) => rest),
-  );
-
   const openRequestTemplates = [
     {
-      title: "Need PS5 for weekend",
-      category: "Electronics & Gaming",
-      subcategory: "Gaming consoles",
-      purpose: "Weekend gaming",
-      message: "Need a PS5 for two days. I can pick up and return on time.",
-      budgetAmount: 2400,
+      title: "Need sewing machine for weekend alterations",
+      category: "Home Appliances",
+      subcategory: "Sewing machines",
+      purpose: "Weekend tailoring",
+      message: "Need a sewing machine for two days to finish a few home alteration tasks.",
+      budgetAmount: 900,
+      depositPreference: "upto_1000",
+      pickupDeliveryPreference: "pickup",
+      urgency: "this_week",
+    },
+    {
+      title: "Need baby stroller for airport visit",
+      category: "Events & Outdoor",
+      subcategory: "Travel accessories",
+      purpose: "Family travel",
+      message: "Looking for a clean foldable stroller for a short airport and city visit.",
+      budgetAmount: 1200,
+      depositPreference: "upto_5000",
+      pickupDeliveryPreference: "delivery",
+      urgency: "flexible",
+    },
+    {
+      title: "Need treadmill for trial month",
+      category: "Sports & Fitness",
+      subcategory: "Treadmills",
+      purpose: "Fitness trial",
+      message: "Want to rent a compact treadmill for a month before buying one.",
+      budgetAmount: 3500,
+      depositPreference: "flexible",
+      pickupDeliveryPreference: "delivery",
+      urgency: "flexible",
+    },
+    {
+      title: "Need drone for campus shoot",
+      category: "Cameras & Creator Gear",
+      subcategory: "Drones",
+      purpose: "Campus video",
+      message: "Need a small camera drone for one morning of aerial shots.",
+      budgetAmount: 2500,
       depositPreference: "upto_5000",
       pickupDeliveryPreference: "pickup",
       urgency: "this_week",
     },
     {
-      title: "Looking for office chair for 1 month",
-      category: "Furniture",
-      subcategory: "Office chairs",
-      purpose: "WFH setup",
-      message: "Need an ergonomic chair for one month for work-from-home setup.",
-      budgetAmount: 1400,
+      title: "Need ice cream maker for house party",
+      category: "Home Appliances",
+      subcategory: "Kitchen appliances",
+      purpose: "House party dessert",
+      message: "Looking for an ice cream maker for a weekend party experiment.",
+      budgetAmount: 1000,
       depositPreference: "upto_1000",
-      pickupDeliveryPreference: "delivery",
-      urgency: "flexible",
-    },
-    {
-      title: "Need projector and speaker for birthday party",
-      category: "Events & Outdoor",
-      subcategory: "Audio/video event setups",
-      purpose: "Birthday party",
-      message: "Projector + speaker needed for one evening home birthday event.",
-      budgetAmount: 3000,
-      depositPreference: "flexible",
       pickupDeliveryPreference: "either",
       urgency: "this_week",
     },
     {
-      title: "Need DSLR camera for college event",
-      category: "Cameras & Creator Gear",
-      subcategory: "DSLR/mirrorless cameras",
-      purpose: "College event",
-      message: "Need DSLR for college cultural event coverage.",
-      budgetAmount: 2200,
+      title: "Need podcast mixer for recording",
+      category: "Electronics & Gaming",
+      subcategory: "Audio mixers",
+      purpose: "Podcast recording",
+      message: "Need a compact audio mixer for a two-person podcast recording session.",
+      budgetAmount: 1600,
       depositPreference: "upto_5000",
       pickupDeliveryPreference: "pickup",
       urgency: "today",
     },
     {
-      title: "Need drill machine for home setup",
-      category: "Tools & DIY",
-      subcategory: "Power tools",
-      purpose: "Moving-in need",
-      message: "Looking for drill machine for a day for shelf setup.",
-      budgetAmount: 600,
-      depositPreference: "upto_1000",
+      title: "Need car roof box for road trip",
+      category: "Events & Outdoor",
+      subcategory: "Travel accessories",
+      purpose: "Road trip storage",
+      message: "Need a roof cargo box for a short outstation trip with family luggage.",
+      budgetAmount: 2800,
+      depositPreference: "flexible",
       pickupDeliveryPreference: "either",
+      urgency: "this_week",
+    },
+    {
+      title: "Need folding massage table",
+      category: "Furniture",
+      subcategory: "Wellness furniture",
+      purpose: "Home physiotherapy",
+      message: "Looking for a foldable massage table for a few home physio sessions.",
+      budgetAmount: 1400,
+      depositPreference: "upto_5000",
+      pickupDeliveryPreference: "delivery",
       urgency: "flexible",
     },
     {
-      title: "Need camping tent for weekend trip",
-      category: "Events & Outdoor",
-      subcategory: "Camping tents",
-      purpose: "Weekend trip",
-      message: "Need a 3-4 person camping tent for this weekend.",
-      budgetAmount: 1600,
-      depositPreference: "upto_5000",
+      title: "Need clothes drying stand",
+      category: "Home Appliances",
+      subcategory: "Laundry accessories",
+      purpose: "Temporary home setup",
+      message: "Need a sturdy drying stand for two weeks after moving into a new flat.",
+      budgetAmount: 600,
+      depositPreference: "upto_1000",
+      pickupDeliveryPreference: "pickup",
+      urgency: "flexible",
+    },
+    {
+      title: "Need barcode scanner for inventory day",
+      category: "Electronics & Gaming",
+      subcategory: "Office electronics",
+      purpose: "Inventory check",
+      message: "Need a USB barcode scanner for a one-day stock counting activity.",
+      budgetAmount: 800,
+      depositPreference: "upto_1000",
+      pickupDeliveryPreference: "either",
+      urgency: "today",
+    },
+    {
+      title: "Need induction cooktop for guest stay",
+      category: "Home Appliances",
+      subcategory: "Kitchen appliances",
+      purpose: "Guest kitchen setup",
+      message: "Looking for an induction cooktop for a week while hosting guests.",
+      budgetAmount: 900,
+      depositPreference: "upto_1000",
       pickupDeliveryPreference: "delivery",
+      urgency: "this_week",
+    },
+    {
+      title: "Need portable whiteboard for workshop",
+      category: "Furniture",
+      subcategory: "Office accessories",
+      purpose: "Training workshop",
+      message: "Need a rolling whiteboard for a half-day internal workshop.",
+      budgetAmount: 1100,
+      depositPreference: "upto_5000",
+      pickupDeliveryPreference: "either",
       urgency: "this_week",
     },
   ];
 
   const openRequestsPayload = openRequestTemplates.map((template, index) => {
-    const requester = renters[index % renters.length];
+    const requester = renters[Math.floor(index / 2) % renters.length];
     const startDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * (index + 1));
     const endDate = new Date(startDate.getTime() + 1000 * 60 * 60 * 24 * (2 + (index % 4)));
     return {
@@ -408,7 +378,7 @@ export async function seedDatabase(options: SeedOptions = {}) {
       urgency: template.urgency,
       kycWillingness: requester.kycStatus === "verified",
       referenceImageUrl: "",
-      status: index === 3 ? "accepted" : index === 4 ? "cancelled" : "open",
+      status: "open",
       responseCount: 0,
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * (index + 2)),
@@ -418,106 +388,8 @@ export async function seedDatabase(options: SeedOptions = {}) {
 
   const insertedOpenRequests = await ItemRequest.insertMany(openRequestsPayload);
 
-  const ps5Listing = insertedListings.find((listing) =>
-    listing.title.toLowerCase().includes("ps5"),
-  );
-  const projectorListing = insertedListings.find((listing) =>
-    listing.title.toLowerCase().includes("projector"),
-  );
-
-  const lenderOne = lenderPool[0];
-  const lenderTwo = lenderPool[1] || lenderPool[0];
-
-  const seededResponses = await OpenRequestResponse.insertMany([
-    {
-      itemRequestId: insertedOpenRequests[0]._id,
-      lenderId: lenderOne._id,
-      listingId: ps5Listing?._id || null,
-      message: "I have a PS5 in excellent condition available for the requested dates.",
-      proposedRent: ps5Listing?.rentPrice || 2500,
-      proposedDeposit: ps5Listing?.depositAmount || 4000,
-      status: "chatting",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
-      updatedAt: new Date(),
-    },
-    {
-      itemRequestId: insertedOpenRequests[2]._id,
-      lenderId: lenderTwo._id,
-      listingId: projectorListing?._id || null,
-      message: "I can offer a projector + speaker combo. Delivery can be arranged.",
-      proposedRent: projectorListing?.rentPrice || 2800,
-      proposedDeposit: projectorListing?.depositAmount || 3500,
-      status: "sent",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8),
-      updatedAt: new Date(),
-    },
-  ]);
-
-  const openRequestResponseCount = new Map<string, number>();
-  seededResponses.forEach((response) => {
-    const key = String(response.itemRequestId);
-    openRequestResponseCount.set(key, (openRequestResponseCount.get(key) || 0) + 1);
-  });
-
-  for (const request of insertedOpenRequests) {
-    const key = String(request._id);
-    const count = openRequestResponseCount.get(key) || 0;
-    if (count > 0) {
-      request.responseCount = count;
-      request.status = request.status === "accepted" ? "accepted" : "responded";
-      await request.save();
-    }
-  }
-
-  await Conversation.insertMany([
-    {
-      itemRequestId: insertedOpenRequests[0]._id,
-      listingId: ps5Listing?._id || null,
-      renterId: insertedOpenRequests[0].requesterId,
-      lenderId: lenderOne._id,
-      messages: [
-        {
-          senderId: lenderOne._id,
-          text: `Lender responded to your request with: ${ps5Listing?.title || "Gaming Console Listing"}`,
-          type: "system",
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
-        },
-        {
-          senderId: lenderOne._id,
-          text: "I can share this for the weekend. Let me know pickup time.",
-          type: "text",
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5),
-        },
-      ],
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
-      updatedAt: new Date(),
-    },
-    {
-      itemRequestId: insertedOpenRequests[2]._id,
-      listingId: projectorListing?._id || null,
-      renterId: insertedOpenRequests[2].requesterId,
-      lenderId: lenderTwo._id,
-      messages: [
-        {
-          senderId: lenderTwo._id,
-          text: `Lender responded to your request with: ${projectorListing?.title || "Projector Listing"}`,
-          type: "system",
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8),
-        },
-        {
-          senderId: lenderTwo._id,
-          text: "I have a setup that should fit your event. Happy to coordinate.",
-          type: "text",
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 7),
-        },
-      ],
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8),
-      updatedAt: new Date(),
-    },
-  ]);
-
   log(
-    `Seed complete: ${insertedUsers.length} users, ${insertedListings.length} listings, ${insertedRequests.length} rental requests, ${insertedOpenRequests.length} open requests, and conversations seeded.`,
+    `Seed complete: ${insertedUsers.length} users, ${insertedListings.length} listings, 0 rental requests, ${insertedOpenRequests.length} open requests.`,
     silent,
   );
 }

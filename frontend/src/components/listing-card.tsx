@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MapPin, ShieldCheck } from "lucide-react";
+import { TrustBadge } from "@/components/ui/trust-badge";
 import { LISTING_IMAGE_FALLBACK_URL } from "@/lib/config";
 import type { Listing, User } from "@/types/domain";
 import { formatCurrency } from "@/lib/utils";
@@ -47,16 +48,9 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </div>
 
         <div className="flex flex-wrap gap-1.5">
-          {listing.isVerifiedOwner && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Trusted Lender
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Deposit Required
-          </span>
+          {listing.isVerifiedOwner && <TrustBadge type="trusted" />}
+          {listing.deliveryAvailable && <TrustBadge type="delivery" />}
+          <TrustBadge type="deposit" />
         </div>
 
         <div className="flex items-center text-xs text-slate-500">

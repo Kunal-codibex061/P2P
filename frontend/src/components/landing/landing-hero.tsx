@@ -1,52 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CalendarDays, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarDays, ShieldCheck, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { formatCurrency } from "@/lib/utils";
-import type { Category, Listing } from "@/types/domain";
 
-interface LandingHeroProps {
-  listings: Listing[];
-  categories: Category[];
-}
-
-function DealBoard({ listings }: { listings: Listing[] }) {
-  const previewListings = listings.slice(0, 4);
-  if (previewListings.length === 0) return null;
-
-  return (
-    <div className="mx-auto grid w-full max-w-6xl gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {previewListings.map((listing) => (
-        <Link
-          key={listing._id}
-          href={`/listings/${listing._id}`}
-          className="group grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-200 bg-white/92 p-2.5 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
-        >
-          <img
-            src={listing.photos[0] || "/images/categories/furniture.jpg"}
-            alt={listing.title}
-            className="h-20 w-20 rounded-xl object-cover"
-          />
-          <div className="min-w-0 py-1">
-            <p className="line-clamp-1 text-sm font-black text-slate-950">{listing.title}</p>
-            <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-slate-500">
-              <MapPin className="h-3.5 w-3.5" />
-              <span className="truncate">
-                {listing.locality}, {listing.city}
-              </span>
-            </p>
-            <p className="mt-2 inline-flex rounded-full bg-lime-100 px-2.5 py-1 text-xs font-black text-lime-950">
-              {formatCurrency(listing.rentPrice)} / {listing.rentUnit}
-            </p>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-export function LandingHero({ listings }: LandingHeroProps) {
+export function LandingHero() {
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -130,11 +88,6 @@ export function LandingHero({ listings }: LandingHeroProps) {
               transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
               className="absolute left-1/2 top-1/2 w-[min(740px,92vw)] -translate-x-1/2 -translate-y-1/2"
             />
-            <div className="absolute bottom-8 left-4 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-lg backdrop-blur sm:left-10">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">This week</p>
-              <p className="mt-1 text-2xl font-black text-slate-950">{listings.length || 36}</p>
-              <p className="text-xs font-semibold text-slate-500">available local items</p>
-            </div>
             <div className="absolute right-2 top-8 rounded-2xl border border-lime-200 bg-lime-100/90 p-4 shadow-lg backdrop-blur sm:right-10">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime-800">Rent smart</p>
               <p className="mt-1 text-sm font-black text-lime-950">Pay for use, not ownership</p>
@@ -142,15 +95,6 @@ export function LandingHero({ listings }: LandingHeroProps) {
           </motion.div>
         </div>
 
-        <div className="mt-4 pb-2">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">Deal board</p>
-            <Link href="/search" className="text-sm font-black text-blue-700 hover:text-blue-900">
-              View all
-            </Link>
-          </div>
-          <DealBoard listings={listings} />
-        </div>
       </div>
     </section>
   );

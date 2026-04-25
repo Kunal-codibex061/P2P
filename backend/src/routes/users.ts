@@ -8,7 +8,6 @@ import { comparePassword, hashPassword } from "../utils/password";
 const router = Router();
 const PUBLIC_USER_FIELDS =
   "name phone email profilePhoto city locality kycStatus lenderRating renterRating isPhoneVerified roleTags createdAt updatedAt";
-const DEFAULT_DEMO_PASSWORD = "demo12345";
 
 const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
@@ -80,10 +79,9 @@ router.put(
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
-    let currentPasswordHash = user.passwordHash;
+    const currentPasswordHash = user.passwordHash;
     if (!currentPasswordHash) {
-      currentPasswordHash = await hashPassword(DEFAULT_DEMO_PASSWORD);
-      await User.findByIdAndUpdate(req.user?._id, { passwordHash: currentPasswordHash });
+      return res.status(400).json({ message: "Password login is not configured for this account." });
     }
 
     const isCurrentPasswordValid = await comparePassword(payload.currentPassword, currentPasswordHash);

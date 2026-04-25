@@ -20,7 +20,7 @@ Brand positioning: **"Rent big useful things from verified people near you."**
 - Profile/KYC mock flow (`not_started -> pending -> verified`)
 - Admin panel for users/listings/requests + moderation + KYC update + reports placeholder
 - Trust and safety banners + report placeholders
-- Mock auth with seeded demo users (renter/lender/hybrid/admin)
+- Email/password auth with seeded Codibex hybrid users
 
 ## Data Model (Mongo)
 
@@ -36,22 +36,17 @@ Indexes included for listing discovery and request/conversation lookups:
 
 ## Seed Data Included
 
-- 10 users
-- 36 listings (6 major categories x 6 listings each)
-- 14 rental requests across multiple statuses
-- 12 conversations with realistic message history
-- 2 curated Unsplash photos per listing (external-hosted URLs)
+- 6 Codibex users
+- 12 listings (2 owned by each user)
+- 12 open requested-item posts (2 posted by each user)
+- Listing photos sourced from Unsplash search with fallbacks
 
 Includes sample listings such as:
-- Canon 80D DSLR Camera Kit
-- Sony Mirrorless Camera with Lens
-- PS5 Console with Controller
-- Epson Projector for Movie Nights
-- JBL Party Speaker with Mic
-- Ergonomic Office Chair
-- Air Cooler for Monthly Rent
-- Bosch Drill Machine
-- Camping Tent for 4 People
+- Portable Standing Desk Converter
+- MacBook Pro M2 Creator Laptop
+- GoPro HERO Action Camera Kit
+- Espresso Coffee Machine
+- Karaoke Mixer and Mic Set
 
 ## Listing Images (Web-Sourced)
 
@@ -129,7 +124,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 
 ## Demo Flow Checklist
 
-1. Login as renter (`/login`)
+1. Login with a seeded Codibex user (`/login`)
 2. Browse listings and open detail
 3. Send request
 4. CTA turns into `Chat`
@@ -142,7 +137,6 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ## What Is Mocked vs Real
 
 Mocked:
-- Authentication (demo user selection)
 - Digio KYC integration (UI + local status transitions)
 - Payments/deposit collection
 - Reports/dispute resolution handling

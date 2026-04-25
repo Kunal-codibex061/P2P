@@ -112,11 +112,10 @@ export function HomePageContent() {
 
   const categories = categoriesQuery.data?.data.categories || [];
   const listings = useMemo(() => listingsQuery.data?.data ?? [], [listingsQuery.data?.data]);
-  const previewListings = listings.slice(0, 6);
 
   return (
     <div className="flex w-full flex-col gap-8 overflow-hidden">
-      <LandingHero listings={previewListings} categories={categories} />
+      <LandingHero />
 
       <AnimatedSection delay={0.05}>
         <CategoryShowcase categories={categories} />

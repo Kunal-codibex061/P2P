@@ -3,28 +3,25 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { User } from "../models";
 import { asyncHandler } from "../utils/http";
+import { comparePassword } from "../utils/password";
 
 const router = Router();
 
-router.get(
-  "/demo-users",
-  asyncHandler(async (_req, res) => {
-    const users = await User.find()
-      .sort({ createdAt: 1 })
-      .select("name email city locality kycStatus roleTags profilePhoto")
-      .lean();
-    res.json({ data: users });
-  }),
-);
-
 router.post(
-  "/mock-login",
+  "/login",
   asyncHandler(async (req, res) => {
-    const schema = z.object({ userId: z.string().min(1) });
-    const { userId } = schema.parse(req.body);
-    const user = await User.findById(userId).lean();
-    if (!user) {
-      return res.status(404).json({ message: "Demo user not found." });
+    const schema = z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+    });
+    const { email, password } = schema.parse(req.body);
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).lean();
+    if (!user?.passwordHash) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+    const passwordMatches = await comparePassword(password, user.passwordHash);
+    if (!passwordMatches) {
+      return res.status(401).json({ message: "Invalid email or password." });
     }
     const token = jwt.sign({ id: String(user._id) }, process.env.JWT_SECRET || "dev-secret", {
       expiresIn: "30d",

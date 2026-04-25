@@ -301,7 +301,7 @@ export default function KycProfilePage() {
             className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
           >
             <p className="text-base font-semibold text-slate-900">Change Password</p>
-            <p className="text-xs text-slate-500">Demo default current password: demo12345</p>
+            <p className="text-xs text-slate-500">Seeded account passwords use the Name@123 format.</p>
             <label className="space-y-1">
               <span className="text-xs font-medium text-slate-600">Current password</span>
               <input

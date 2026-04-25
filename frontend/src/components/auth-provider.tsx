@@ -24,7 +24,7 @@ interface AuthContextValue {
   user: User | null;
   token: string | null;
   loading: boolean;
-  loginAsDemoUser: (userId: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 }
@@ -95,11 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hydrate();
   }, [persist, resetSessionScopedQueries]);
 
-  const loginAsDemoUser = useCallback(
-    async (userId: string) => {
+  const login = useCallback(
+    async (email: string, password: string) => {
       resetSessionScopedQueries();
-      const response = await api.post<{ token: string; user: User }>("/api/auth/mock-login", {
-        userId,
+      const response = await api.post<{ token: string; user: User }>("/api/auth/login", {
+        email,
+        password,
       });
       setUser(response.data.user);
       setToken(response.data.token);
@@ -117,8 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persist, resetSessionScopedQueries]);
 
   const value = useMemo(
-    () => ({ user, token, loading, loginAsDemoUser, logout, refreshMe }),
-    [user, token, loading, loginAsDemoUser, logout, refreshMe],
+    () => ({ user, token, loading, login, logout, refreshMe }),
+    [user, token, loading, login, logout, refreshMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

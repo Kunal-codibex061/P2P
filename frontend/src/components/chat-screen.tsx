@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { SafetyBanner } from "@/components/ui/safety-banner";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/config";
 import { formatCurrency, getId, shortDate, titleCase } from "@/lib/utils";
 import type { Conversation, ItemRequest, Listing, RentalRequest, User } from "@/types/domain";
 import { RequestTimeline } from "./request-timeline";
@@ -21,6 +22,11 @@ const quickActions = [
   "Can you reduce the price?",
   "Is delivery possible?",
 ];
+
+interface ConversationMessageEvent {
+  conversationId: string;
+  updatedAt: string;
+}
 
 export function ChatScreen({ initialConversationId }: { initialConversationId?: string }) {
   const router = useRouter();
@@ -50,6 +56,38 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
   const request = selectedConversation?.requestId as RentalRequest | undefined;
   const itemRequest = selectedConversation?.itemRequestId as ItemRequest | undefined;
   const listing = selectedConversation?.listingId as Listing | undefined;
+
+  useEffect(() => {
+    if (!token || !user?._id || typeof window === "undefined") return;
+
+    const events = new EventSource(
+      `${API_BASE_URL}/api/conversations/events?token=${encodeURIComponent(token)}`,
+    );
+
+    const onConversationMessage: EventListener = (event) => {
+      const messageEvent = event as MessageEvent<string>;
+      try {
+        const payload = JSON.parse(messageEvent.data) as ConversationMessageEvent;
+        queryClient.invalidateQueries({ queryKey: ["conversations", user._id] });
+        queryClient.invalidateQueries({
+          queryKey: ["conversation-detail", payload.conversationId],
+        });
+        if (payload.conversationId === selectedConversationId) {
+          queryClient.refetchQueries({
+            queryKey: ["conversation-detail", payload.conversationId],
+          });
+        }
+      } catch {
+        queryClient.invalidateQueries({ queryKey: ["conversations", user._id] });
+      }
+    };
+
+    events.addEventListener("conversation-message", onConversationMessage);
+    return () => {
+      events.removeEventListener("conversation-message", onConversationMessage);
+      events.close();
+    };
+  }, [queryClient, selectedConversationId, token, user?._id]);
 
   const sendMessage = useMutation({
     mutationFn: async (text: string) => {
