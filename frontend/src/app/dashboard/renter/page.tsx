@@ -7,7 +7,6 @@ import { useAuth } from "@/components/auth-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LifecycleStepper } from "@/components/ui/lifecycle-stepper";
 import { RequestStatusActions } from "@/components/request-status-actions";
-import { PublicItemRequestsPanel } from "@/components/public-item-requests-panel";
 import { api } from "@/lib/api";
 import { formatCurrency, getId, shortDate, titleCase } from "@/lib/utils";
 import type { Listing, RentalRequest, User } from "@/types/domain";
@@ -81,6 +80,7 @@ export default function RenterDashboardPage() {
           {requests.length === 0 ? (
             <EmptyState
               compact
+              compactLayout="full"
               title="No rental requests yet"
               description="Explore rentals and request your first item."
             />
@@ -94,14 +94,11 @@ export default function RenterDashboardPage() {
         </section>
 
         <section className="space-y-3">
-          <PublicItemRequestsPanel />
-        </section>
-
-        <section className="space-y-3">
           <h2 className="text-lg font-semibold text-slate-900">Active Rentals</h2>
           {activeRequests.length === 0 ? (
             <EmptyState
               compact
+              compactLayout="full"
               title="No active rentals"
               description="Accepted rentals will appear here."
             />
@@ -119,6 +116,7 @@ export default function RenterDashboardPage() {
           {completedRequests.length === 0 ? (
             <EmptyState
               compact
+              compactLayout="full"
               title="No completed rentals yet"
               description="Completed bookings will appear here."
             />

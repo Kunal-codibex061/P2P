@@ -79,10 +79,10 @@ export function RequestedItemCard({ request, onCancel, onEdit }: RequestedItemCa
         {chatHref ? (
           <Link
             href={chatHref}
-            className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+            className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold !text-white shadow-sm transition hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-slate-400/60"
           >
-            <MessageSquare className="h-3.5 w-3.5" />
-            Chat
+            <MessageSquare className="h-3.5 w-3.5 !text-white" />
+            Open Chat
           </Link>
         ) : null}
         {isOpenRequest && (

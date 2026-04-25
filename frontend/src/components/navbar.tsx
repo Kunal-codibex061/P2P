@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Handshake,
   MapPin,
+  Megaphone,
   MessageCircle,
   Search,
   Shield,
@@ -264,6 +265,13 @@ export function Navbar() {
                     >
                       <ClipboardList className="h-4 w-4 text-slate-500" />
                       Requested Items
+                    </Link>
+                    <Link
+                      href="/public-requests"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                    >
+                      <Megaphone className="h-4 w-4 text-slate-500" />
+                      Public Requests
                     </Link>
                     <Link
                       href="/dashboard/lender"

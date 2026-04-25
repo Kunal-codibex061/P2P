@@ -7,7 +7,6 @@ import { useAuth } from "@/components/auth-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LifecycleStepper } from "@/components/ui/lifecycle-stepper";
 import { RequestStatusActions } from "@/components/request-status-actions";
-import { PublicItemRequestsPanel } from "@/components/public-item-requests-panel";
 import { api } from "@/lib/api";
 import { LISTING_IMAGE_FALLBACK_URL } from "@/lib/config";
 import { formatCurrency, shortDate, titleCase } from "@/lib/utils";
@@ -62,6 +61,7 @@ export default function LenderDashboardPage() {
           {listings.length === 0 ? (
             <EmptyState
               compact
+              compactLayout="full"
               title="No listings yet"
               description="Publish your first big-ticket item."
             />
@@ -102,6 +102,7 @@ export default function LenderDashboardPage() {
           {requests.length === 0 ? (
             <EmptyState
               compact
+              compactLayout="full"
               title="No incoming requests"
               description="New renter requests will appear here."
             />
@@ -137,9 +138,6 @@ export default function LenderDashboardPage() {
           )}
         </section>
 
-        <section className="space-y-3 pb-8">
-          <PublicItemRequestsPanel />
-        </section>
       </div>
     </RequireAuth>
   );

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Search, ShieldCheck, Truck, Wallet, MapPin } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Typewriter from "typewriter-effect";
 import { categoryImageMap } from "@/lib/category-media";
@@ -15,19 +15,27 @@ interface LandingHeroProps {
   categories: Category[];
 }
 
-const trustChips = [
-  { label: "Verified lenders", icon: ShieldCheck },
-  { label: "Local pickup", icon: MapPin },
-  { label: "Secure deposit", icon: Wallet },
-  { label: "Delivery available", icon: Truck },
-];
-
 const typewriterPhrases = [
   "Find camera",
   "Find sofa",
   "Find projector",
   "Find party lights",
   "Find drill machine",
+];
+
+const quickCategoryPills = [
+  { label: "Cameras", query: "camera" },
+  { label: "Tools", query: "tools" },
+  { label: "Furniture", query: "furniture" },
+  { label: "Event Gear", query: "event gear" },
+  { label: "Laptops", query: "laptop" },
+  { label: "Speakers", query: "speaker" },
+  { label: "Projectors", query: "projector" },
+  { label: "Gaming", query: "gaming console" },
+  { label: "Appliances", query: "home appliances" },
+  { label: "Outdoor", query: "camping gear" },
+  { label: "Power Backup", query: "inverter" },
+  { label: "Cleaning", query: "vacuum cleaner" },
 ];
 
 export function LandingHero({ listings, categories }: LandingHeroProps) {
@@ -45,7 +53,6 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
       })),
     [categories],
   );
-
   function submitSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const query = searchText.trim();
@@ -54,23 +61,21 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
   }
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border accent-border-soft bg-gradient-to-br from-[color:var(--accent-soft)] via-white to-sky-50 p-6 shadow-sm sm:p-10">
+    <section className="relative overflow-hidden rounded-3xl border accent-border-soft bg-gradient-to-br from-[color:var(--accent-soft)] via-white to-sky-50 p-6 shadow-sm sm:p-10 lg:h-[calc(100svh-8.5rem)]">
       <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#0078FA]/20 blur-3xl" />
       <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-[#0078FA]/12 blur-3xl" />
 
-      <div className="grid items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-5">
-          <p className="accent-text inline-flex items-center gap-2 rounded-full border accent-border-soft bg-white px-3 py-1 text-xs font-medium">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Trusted P2P rental marketplace
-          </p>
-          <h1 className="max-w-xl text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Rent useful things from verified neighbors in minutes.
-          </h1>
-          <p className="max-w-xl text-sm text-slate-600 sm:text-base">
-            Cameras, tools, furniture, electronics, and event gear - local, dependable, and
-            designed around trust.
-          </p>
+      <div className="grid items-start gap-8 lg:h-full lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-6 lg:space-y-7 lg:py-2">
+          <div className="space-y-4">
+            <h1 className="max-w-xl text-3xl font-bold tracking-tight leading-[1.04] text-slate-900 sm:text-5xl">
+              Rent useful things from verified neighbors in minutes.
+            </h1>
+            <p className="max-w-xl text-sm text-slate-600 sm:text-base">
+              Cameras, tools, furniture, electronics, and event gear - local, dependable, and
+              designed around trust.
+            </p>
+          </div>
 
           <form onSubmit={submitSearch} className="max-w-xl rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
             <div className="flex items-center gap-2">
@@ -140,39 +145,40 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
             </Link>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {trustChips.map((chip, idx) => {
-              const Icon = chip.icon;
-              if (shouldReduceMotion) {
-                return (
-                  <span
-                    key={chip.label}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700"
+          <div className="max-w-xl">
+            <div className="flex flex-wrap gap-2">
+              {quickCategoryPills.map((pill, idx) => {
+                const pillNode = (
+                  <Link
+                    key={pill.label}
+                    href={`/search?q=${encodeURIComponent(pill.query)}`}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
                   >
-                    <Icon className="accent-text h-3.5 w-3.5" />
-                    {chip.label}
-                  </span>
+                    {pill.label}
+                  </Link>
                 );
-              }
-              return (
-                <motion.span
-                  key={chip.label}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.12 + idx * 0.06, duration: 0.28 }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700"
-                >
-                  <Icon className="accent-text h-3.5 w-3.5" />
-                  {chip.label}
-                </motion.span>
-              );
-            })}
+                if (shouldReduceMotion) {
+                  return pillNode;
+                }
+                return (
+                  <motion.div
+                    key={pill.label}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + idx * 0.05, duration: 0.24 }}
+                  >
+                    {pillNode}
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
+
         </div>
 
-        <div className="relative mx-auto w-full max-w-sm">
+        <div className="relative mx-auto w-full max-w-sm lg:h-full">
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#66B2FF]/40 to-[#B8D9FF]/35 blur-2xl" />
-          <div className="relative space-y-3">
+          <div className="relative space-y-3 lg:flex lg:h-full lg:flex-col">
             {(heroListings.length > 0
               ? heroListings.map((listing) => ({
                   title: listing.title,
@@ -188,8 +194,8 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
                 }))
             ).map((card, index) => {
               const cardNode = (
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
-                  <div className="h-32 bg-slate-100">
+                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
+                  <div className="h-24 bg-slate-100 sm:h-28 xl:h-32">
                     {card.image ? (
                       <img
                         src={card.image}
@@ -202,7 +208,7 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
                       />
                     ) : null}
                   </div>
-                  <div className="space-y-1 p-3">
+                  <div className="space-y-1 p-2.5">
                     <p className="line-clamp-1 text-sm font-semibold text-slate-900">{card.title}</p>
                     <p className="text-xs font-medium text-slate-700">{card.price}</p>
                     <p className="text-xs text-slate-500">{card.locality}</p>
@@ -211,7 +217,11 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
               );
 
               if (shouldReduceMotion) {
-                return <div key={`${card.title}-${index}`}>{cardNode}</div>;
+                return (
+                  <div key={`${card.title}-${index}`} className="lg:flex-1">
+                    {cardNode}
+                  </div>
+                );
               }
 
               return (
@@ -221,6 +231,7 @@ export function LandingHero({ listings, categories }: LandingHeroProps) {
                   animate={{ opacity: 1, y: 0, rotate: index % 2 === 0 ? -1.8 : 1.8 }}
                   transition={{ duration: 0.45, delay: 0.08 + index * 0.08 }}
                   whileHover={{ y: -4, rotate: 0 }}
+                  className="lg:flex-1"
                 >
                   {cardNode}
                 </motion.div>

@@ -1,35 +1,20 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useAuth } from "./auth-provider";
 import { RequestItemWizard } from "./request-item-wizard";
 import { useEffect, useRef, useState } from "react";
 import type { ItemRequest } from "@/types/domain";
 
-const renterVisiblePathPatterns = [
-  /^\/$/,
-  /^\/explore$/,
-  /^\/search$/,
-  /^\/listings(?:\/.*)?$/,
-  /^\/categories\/.+$/,
-  /^\/dashboard\/renter$/,
-  /^\/requested-items(?:\/.*)?$/,
-];
-
-function shouldShowRequestButton(pathname: string): boolean {
-  return renterVisiblePathPatterns.some((pattern) => pattern.test(pathname));
-}
-
 export function FloatingActions() {
-  const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
   const [openRequestWizard, setOpenRequestWizard] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const fabRef = useRef<HTMLDivElement | null>(null);
 
-  const canShowRenterFab = Boolean(user) && shouldShowRequestButton(pathname);
+  const canShowRenterFab = Boolean(user);
 
   useEffect(() => {
     function onOutsideClick(event: MouseEvent) {
@@ -49,16 +34,12 @@ export function FloatingActions() {
     router.push("/requested-items");
   }
 
-  if (pathname.startsWith("/chat")) {
-    return null;
-  }
-
   return (
     <>
       {canShowRenterFab && (
         <div
           ref={fabRef}
-          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-50 flex flex-col items-end gap-2"
+          className="fixed right-5 z-[60] flex flex-col items-end gap-2 bottom-[max(6rem,calc(1rem+env(safe-area-inset-bottom)))] sm:right-6 sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
         >
           {fabMenuOpen && (
             <div className="w-44 space-y-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">

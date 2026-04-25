@@ -183,7 +183,32 @@ router.get(
       .limit(80)
       .lean();
 
-    return res.json({ data: requests });
+    if (requests.length === 0) {
+      return res.json({ data: [] });
+    }
+
+    const conversations = await Conversation.find({
+      itemRequestId: { $in: requests.map((request) => request._id) },
+      lenderId: req.user?._id,
+    })
+      .select("_id itemRequestId updatedAt")
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    const conversationByRequest = new Map<string, string>();
+    for (const conversation of conversations) {
+      const requestId = String(conversation.itemRequestId);
+      if (!conversationByRequest.has(requestId)) {
+        conversationByRequest.set(requestId, String(conversation._id));
+      }
+    }
+
+    const normalized = requests.map((request) => ({
+      ...request,
+      primaryConversationId: conversationByRequest.get(String(request._id)) || null,
+    }));
+
+    return res.json({ data: normalized });
   }),
 );
 

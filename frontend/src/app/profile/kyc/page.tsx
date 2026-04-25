@@ -1,7 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, CircleCheck, Shield } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/components/auth-provider";
 import { TrustBadge } from "@/components/ui/trust-badge";
@@ -9,8 +8,7 @@ import { api } from "@/lib/api";
 import type { User } from "@/types/domain";
 
 export default function KycProfilePage() {
-  const { token, user, refreshMe } = useAuth();
-  const queryClient = useQueryClient();
+  const { token, user } = useAuth();
 
   const profileQuery = useQuery({
     queryKey: ["me"],
@@ -20,29 +18,13 @@ export default function KycProfilePage() {
 
   const profile = profileQuery.data?.data || user;
 
-  const startKyc = useMutation({
-    mutationFn: () => api.post("/api/kyc/mock/start", {}, token),
-    onSuccess: async () => {
-      await refreshMe();
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
-    },
-  });
-
-  const verifyKyc = useMutation({
-    mutationFn: () => api.post("/api/kyc/mock/verify", {}, token),
-    onSuccess: async () => {
-      await refreshMe();
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
-    },
-  });
-
   return (
     <RequireAuth>
       <div className="mx-auto w-full max-w-4xl space-y-5 px-4 py-8">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Profile & KYC</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Identity verification powered by Digio (mock flow for V1 prototype).
+            KYC will be completed through DigiLocker integration soon.
           </p>
         </section>
 
@@ -70,35 +52,12 @@ export default function KycProfilePage() {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-slate-900">KYC Workflow</p>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
-                <Shield className="h-4 w-4 text-slate-500" />
-                <span>not_started</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2">
-                <CircleCheck className="h-4 w-4 text-amber-700" />
-                <span>pending</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2">
-                <BadgeCheck className="h-4 w-4 text-emerald-700" />
-                <span>verified</span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                onClick={() => startKyc.mutate()}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-              >
-                Start KYC
-              </button>
-              <button
-                onClick={() => verifyKyc.mutate()}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
-              >
-                Verify KYC
-              </button>
+            <p className="text-sm font-semibold text-slate-900">DigiLocker Integration</p>
+            <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+              <p className="text-sm text-slate-700">KYC workflow has been removed.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                DigiLocker based verification will be available in a future update.
+              </p>
             </div>
           </div>
         </section>

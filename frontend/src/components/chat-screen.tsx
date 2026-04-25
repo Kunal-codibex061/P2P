@@ -78,12 +78,12 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
 
   return (
     <RequireAuth>
-      <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-8 lg:grid-cols-[340px_1fr]">
-        <aside className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-4 lg:min-h-[calc(100svh-10rem)] lg:grid-cols-[340px_minmax(0,1fr)] lg:items-stretch">
+        <aside className="rounded-3xl border border-slate-200 bg-white shadow-sm lg:flex lg:h-full lg:min-h-0 lg:flex-col">
           <div className="border-b border-slate-200 px-4 py-3">
             <h2 className="font-semibold text-slate-900">Conversations</h2>
           </div>
-          <div className="max-h-[70vh] overflow-y-auto p-2">
+          <div className="overflow-y-auto p-2 lg:min-h-0 lg:flex-1">
             {conversations.length === 0 ? (
               <EmptyState
                 title="No chats yet"
@@ -127,9 +127,9 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
           </div>
         </aside>
 
-        <section className="space-y-4">
+        <section className="space-y-4 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
           {!selectedConversation ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-8">
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 lg:flex lg:min-h-0 lg:flex-1 lg:items-center lg:justify-center">
               <EmptyState
                 title="Select a conversation"
                 description="Open a chat from left to continue rental discussion."
@@ -192,8 +192,8 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
 
               <SafetyBanner />
 
-              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div className="max-h-[48vh] space-y-2 overflow-y-auto p-4">
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+                <div className="space-y-2 overflow-y-auto p-4 lg:min-h-0 lg:flex-1">
                   {orderedMessages.map((message, index) => {
                     const mine = message.senderId === user?._id;
                     return message.type === "system" ? (
