@@ -33,8 +33,8 @@ export function LandingHero() {
             </h1>
 
             <p className="mt-6 max-w-xl text-base font-semibold leading-7 text-slate-600 sm:text-lg">
-              Borrow cameras, tools, event gear, appliances, and everyday essentials from verified
-              people around you, without buying things you only need once.
+              Borrow items across major categories from verified people around you, without buying
+              things you only need once.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal, X } from "lucide-react";
@@ -18,6 +18,7 @@ import {
   toRouteQueryString,
   type ListingFiltersV2,
 } from "@/lib/listing-filters";
+import { readStoredRentalIntent } from "@/lib/rental-intent";
 import type { Category, Listing, ListingFacets } from "@/types/domain";
 
 const emptyFacets: ListingFacets = {
@@ -34,6 +35,7 @@ export function CategoryPageContent({ slug }: { slug: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const hasAppliedInitialStoredCity = useRef(false);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -75,6 +77,16 @@ export function CategoryPageContent({ slug }: { slug: string }) {
     const nextQueryString = toRouteQueryString(next, { includeCategory: false });
     router.replace(nextQueryString ? `/categories/${slug}?${nextQueryString}` : `/categories/${slug}`);
   }
+
+  useEffect(() => {
+    if (hasAppliedInitialStoredCity.current) return;
+    hasAppliedInitialStoredCity.current = true;
+    if (!category?.label || filters.city) return;
+    const storedCity = readStoredRentalIntent().city;
+    if (!storedCity) return;
+    const nextQueryString = toRouteQueryString({ ...filters, city: storedCity }, { includeCategory: false });
+    router.replace(nextQueryString ? `/categories/${slug}?${nextQueryString}` : `/categories/${slug}`);
+  }, [category?.label, filters, router, slug]);
 
   const listings = listingsQuery.data?.data || [];
   const facets = facetsQuery.data?.data || emptyFacets;
@@ -125,7 +137,7 @@ export function CategoryPageContent({ slug }: { slug: string }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
-        <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-fit">
+        <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
           <FilterSidebar
             filters={filters}
             facets={facets}

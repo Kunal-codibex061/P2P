@@ -16,7 +16,7 @@ export function HowItWorks() {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900">How RENTeasy Works</h2>
+        <h2 className="text-xl font-semibold text-slate-900">How RentEasy Works</h2>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, index) => {

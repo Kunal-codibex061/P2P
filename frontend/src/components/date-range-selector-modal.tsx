@@ -192,8 +192,8 @@ export function DateRangeSelectorModal({
             <div className="flex gap-3 rounded-[1.5rem] bg-blue-100 px-4 py-3 text-sm font-semibold text-blue-950">
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
               <p>
-                Pick delivery and pickup dates before searching. We only charge for the rental days
-                between those dates.
+                Pick delivery and pickup dates before searching so owners can quote accurately for
+                only the rental days between those dates.
               </p>
             </div>
 

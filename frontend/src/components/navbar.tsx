@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
+  Bell,
   BadgeCheck,
   Building2,
   ChevronDown,
@@ -16,15 +18,28 @@ import {
   UserCircle2,
 } from "lucide-react";
 import { RentalIntentSelector } from "@/components/rental-intent-selector";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import type { NotificationItem } from "@/types/domain";
 import { useAuth } from "./auth-provider";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const shouldHideNavbar =
+    pathname === "/login" ||
+    pathname === "/listings/new" ||
+    /^\/listings\/[^/]+\/edit$/.test(pathname);
+  const { user, token, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications", user?._id, "navbar"],
+    enabled: Boolean(user && token),
+    queryFn: () => api.get<NotificationItem[]>("/api/notifications?limit=20", token),
+    refetchInterval: 15000,
+  });
+  const unreadCount = (notificationsQuery.data?.data || []).filter((item) => !item.readAt).length;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setProfileOpen(false), 0);
@@ -43,43 +58,24 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  useEffect(() => {
-    function syncScrollState() {
-      setIsScrolled(window.scrollY > 32);
-    }
-
-    syncScrollState();
-    window.addEventListener("scroll", syncScrollState, { passive: true });
-    return () => window.removeEventListener("scroll", syncScrollState);
-  }, []);
+  if (shouldHideNavbar) {
+    return null;
+  }
 
   return (
     <header
-      className={cn(
-        "sticky top-0 z-40 transition-all duration-300",
-        isScrolled
-          ? "border-b border-slate-200/80 bg-white/96 shadow-sm backdrop-blur-xl"
-          : "border-b border-transparent bg-[#f7fbff]/82 backdrop-blur-md",
-      )}
+      className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/96 shadow-sm backdrop-blur-xl"
     >
       <div
-        className={cn(
-          "mx-auto grid w-full max-w-7xl items-center gap-3 px-4 transition-all duration-300 lg:grid-cols-[13rem_minmax(0,1fr)_auto]",
-          isScrolled ? "py-2" : "py-4",
-        )}
+        className="mx-auto grid w-full max-w-7xl items-center gap-3 px-4 py-2 lg:grid-cols-[13rem_minmax(0,1fr)_auto]"
       >
         <Link href="/" className="flex items-center gap-2 font-semibold text-slate-900">
-          <div
-            className={cn(
-              "flex items-center justify-center bg-blue-700 !text-white shadow-sm transition-all duration-300",
-              isScrolled ? "h-9 w-9 rounded-xl" : "h-11 w-11 rounded-2xl",
-            )}
-          >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 !text-white shadow-sm">
             <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-black">RENTeasy</p>
-            <p className={cn("text-xs font-normal text-slate-500", isScrolled && "hidden xl:block")}>
+            <p className="text-sm font-black">RentEasy</p>
+            <p className="hidden text-xs font-normal text-slate-500 xl:block">
               Trusted local rentals
             </p>
           </div>
@@ -88,12 +84,8 @@ export function Navbar() {
         <div className="order-3 lg:order-2">
           <RentalIntentSelector
             variant="navbar"
-            className={cn(
-              "transition-all duration-300",
-              isScrolled
-                ? "shadow-none"
-                : "border-white/70 bg-white/74 shadow-[0_18px_60px_rgba(15,23,42,0.06)] backdrop-blur-xl",
-            )}
+            showDateSelector={false}
+            className="shadow-none"
           />
         </div>
 
@@ -174,6 +166,13 @@ export function Navbar() {
                       <MessageCircle className="h-4 w-4 text-slate-500" />
                       Chats
                     </Link>
+                    <Link
+                      href="/notifications"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                    >
+                      <Bell className="h-4 w-4 text-slate-500" />
+                      Notifications
+                    </Link>
                     <button
                       type="button"
                       onClick={logout}
@@ -184,6 +183,20 @@ export function Navbar() {
                   </div>
                 )}
               </div>
+
+              <Link
+                href="/notifications"
+                title="Open notifications"
+                aria-label="Open notifications"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold !text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                ) : null}
+              </Link>
 
               <Link
                 href="/chat"

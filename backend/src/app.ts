@@ -1,5 +1,4 @@
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
 import path from "path";
 import authRoutes from "./routes/auth";
@@ -13,15 +12,16 @@ import kycRoutes from "./routes/kyc";
 import adminRoutes from "./routes/admin";
 import lenderRoutes from "./routes/lender";
 import uploadRoutes from "./routes/uploads";
+import notificationsRoutes from "./routes/notifications";
+import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 
-dotenv.config();
-
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL?.split(",") || "*",
+    origin: env.FRONTEND_ORIGINS,
     credentials: true,
   }),
 );
@@ -30,6 +30,15 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "backend", timestamp: new Date().toISOString() });
+});
+
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "backend",
+    message: "API is running. Use /health or /api/* endpoints.",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use("/api/auth", authRoutes);
@@ -43,6 +52,7 @@ app.use("/api/kyc", kycRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/lender", lenderRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

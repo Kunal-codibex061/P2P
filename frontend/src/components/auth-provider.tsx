@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { signOut as firebaseSignOut } from "firebase/auth";
 import { api } from "@/lib/api";
+import { firebaseAuth } from "@/lib/firebase";
 import type { User } from "@/types/domain";
 
 const STORAGE_KEY = "rentora-session";
@@ -24,7 +26,7 @@ interface AuthContextValue {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  loginWithFirebaseToken: (idToken: string) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 }
@@ -73,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.removeQueries({ queryKey: ["listing-requests"] });
     queryClient.removeQueries({ queryKey: ["item-requests"] });
     queryClient.removeQueries({ queryKey: ["lender-open-requests"] });
+    queryClient.removeQueries({ queryKey: ["notifications"] });
+    queryClient.removeQueries({ queryKey: ["notification-unread-count"] });
   }, [queryClient]);
 
   useEffect(() => {
@@ -95,12 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hydrate();
   }, [persist, resetSessionScopedQueries]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
+  const loginWithFirebaseToken = useCallback(
+    async (idToken: string) => {
       resetSessionScopedQueries();
-      const response = await api.post<{ token: string; user: User }>("/api/auth/login", {
-        email,
-        password,
+      const response = await api.post<{ token: string; user: User }>("/api/auth/firebase", {
+        idToken,
       });
       setUser(response.data.user);
       setToken(response.data.token);
@@ -115,11 +118,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setToken(null);
     persist(null);
+    void firebaseSignOut(firebaseAuth).catch(() => {
+      // Ignore Firebase logout errors and keep local session cleanup deterministic.
+    });
   }, [persist, resetSessionScopedQueries]);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, logout, refreshMe }),
-    [user, token, loading, login, logout, refreshMe],
+    () => ({ user, token, loading, loginWithFirebaseToken, logout, refreshMe }),
+    [user, token, loading, loginWithFirebaseToken, logout, refreshMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

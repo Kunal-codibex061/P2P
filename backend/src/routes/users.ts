@@ -3,7 +3,6 @@ import { z } from "zod";
 import { User } from "../models";
 import { requireAuth } from "../middleware/auth";
 import { asyncHandler } from "../utils/http";
-import { comparePassword, hashPassword } from "../utils/password";
 
 const router = Router();
 const PUBLIC_USER_FIELDS =
@@ -17,21 +16,6 @@ const updateUserSchema = z.object({
   city: z.string().min(2).optional(),
   locality: z.string().min(2).optional(),
 });
-
-const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(8),
-    newPassword: z.string().min(8),
-    confirmPassword: z.string().min(8),
-  })
-  .refine((value) => value.newPassword === value.confirmPassword, {
-    message: "New password and confirmation do not match.",
-    path: ["confirmPassword"],
-  })
-  .refine((value) => value.currentPassword !== value.newPassword, {
-    message: "New password must be different from current password.",
-    path: ["newPassword"],
-  });
 
 router.get(
   "/me",
@@ -74,28 +58,10 @@ router.put(
   "/me/password",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const payload = changePasswordSchema.parse(req.body);
-    const user = await User.findById(req.user?._id).select("passwordHash").lean();
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-    const currentPasswordHash = user.passwordHash;
-    if (!currentPasswordHash) {
-      return res.status(400).json({ message: "Password login is not configured for this account." });
-    }
-
-    const isCurrentPasswordValid = await comparePassword(payload.currentPassword, currentPasswordHash);
-    if (!isCurrentPasswordValid) {
-      return res.status(401).json({ message: "Current password is incorrect." });
-    }
-
-    const nextPasswordHash = await hashPassword(payload.newPassword);
-    await User.findByIdAndUpdate(req.user?._id, {
-      passwordHash: nextPasswordHash,
-      passwordUpdatedAt: new Date(),
+    return res.status(410).json({
+      message:
+        "Password login is disabled. Update your login method in Firebase Auth (Google or phone OTP).",
     });
-
-    return res.json({ message: "Password updated successfully." });
   }),
 );
 

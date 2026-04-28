@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Allow temporary tunnel domains when sharing local dev server.
+  allowedDevOrigins: ["*.trycloudflare.com"],
 };
 
 export default nextConfig;

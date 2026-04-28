@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { env } from "../config/env";
 import { User } from "../models";
 import type { AuthUserPayload } from "../types";
 
@@ -17,7 +18,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "dev-secret",
+      env.JWT_SECRET,
     ) as AuthUserPayload;
     const user = await User.findById(decoded.id).lean();
     if (!user) {

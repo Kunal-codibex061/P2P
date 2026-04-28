@@ -1,7 +1,7 @@
-# RENTeasy Product Requirements Document
+# RentEasy Product Requirements Document
 
 ## 1. Product Summary
-RENTeasy is a trusted peer-to-peer rental marketplace for useful local items such as cameras, tools, furniture, electronics, home appliances, event gear, and outdoor equipment. The product helps renters find nearby items for a date range and helps owners earn from items they already own.
+RentEasy is a trusted peer-to-peer rental marketplace for useful local items such as cameras, tools, furniture, electronics, home appliances, event gear, and outdoor equipment. The product helps renters find nearby items for a date range and helps owners earn from items they already own.
 
 The current product is a V1 marketplace prototype with real Mongo-backed listings, rental requests, conversations, dashboards, item-request flows, KYC mock states, admin moderation, and Docker-based deployment.
 

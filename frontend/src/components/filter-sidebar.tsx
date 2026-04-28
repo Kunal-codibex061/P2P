@@ -3,7 +3,7 @@
 import { Filter, X } from "lucide-react";
 import {
   type ListingFiltersV2,
-  withCategoryChange,
+  withCategoriesChange,
 } from "@/lib/listing-filters";
 import type { ListingFacets } from "@/types/domain";
 
@@ -39,6 +39,11 @@ function toggleSpecValue(
   return { ...specs, [key]: nextValues };
 }
 
+function sanitizeBudgetInput(value: string) {
+  const digitsOnly = value.replace(/[^\d]/g, "");
+  return digitsOnly.length > 0 ? digitsOnly : undefined;
+}
+
 export function FilterSidebar({
   filters,
   facets,
@@ -59,25 +64,21 @@ export function FilterSidebar({
 
   const activeChips: Array<{ key: string; label: string; onRemove: () => void }> = [];
 
-  if (showCategoryFilter && filters.category) {
-    activeChips.push({
-      key: "category",
-      label: filters.category,
-      onRemove: () => onChange(withCategoryChange(filters, undefined)),
-    });
-  }
-  if (filters.q) {
-    activeChips.push({
-      key: "q",
-      label: `Search: ${filters.q}`,
-      onRemove: () => onChange({ ...filters, q: undefined }),
+  if (showCategoryFilter) {
+    filters.categories.forEach((category) => {
+      activeChips.push({
+        key: `category-${category}`,
+        label: category,
+        onRemove: () =>
+          onChange(withCategoriesChange(filters, filters.categories.filter((item) => item !== category))),
+      });
     });
   }
   if (filters.city) {
     activeChips.push({
       key: "city",
       label: `City: ${filters.city}`,
-      onRemove: () => onChange({ ...filters, city: undefined }),
+      onRemove: () => onChange({ ...filters, city: undefined, locality: undefined }),
     });
   }
   if (filters.locality) {
@@ -201,45 +202,56 @@ export function FilterSidebar({
       {showCategoryFilter && (
         <details open className="border-t border-slate-100 pt-3">
           <summary className="cursor-pointer text-sm font-semibold text-slate-900">Category</summary>
-          <select
-            value={filters.category || ""}
-            onChange={(event) => onChange(withCategoryChange(filters, event.target.value || undefined))}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
-            <option value="">All categories</option>
+          <div className="mt-2 max-h-48 space-y-2 overflow-y-auto pr-1">
             {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
+              <label key={category} className="flex items-center justify-between gap-2 text-sm">
+                <span className="inline-flex items-center gap-2 text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={filters.categories.includes(category)}
+                    onChange={(event) => {
+                      const nextCategories = toggleValue(
+                        filters.categories,
+                        category,
+                        event.target.checked,
+                      );
+                      onChange(withCategoriesChange(filters, nextCategories));
+                    }}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                  {category}
+                </span>
+              </label>
             ))}
-          </select>
+          </div>
+          {categories.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-500">Categories are unavailable right now.</p>
+          ) : null}
         </details>
       )}
-
-      <details open className="border-t border-slate-100 pt-3">
-        <summary className="cursor-pointer text-sm font-semibold text-slate-900">Search</summary>
-        <input
-          value={filters.q || ""}
-          onChange={(event) => onChange({ ...filters, q: event.target.value || undefined })}
-          placeholder="Camera, sofa, projector..."
-          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        />
-      </details>
 
       <details open className="border-t border-slate-100 pt-3">
         <summary className="cursor-pointer text-sm font-semibold text-slate-900">Budget</summary>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={filters.minPrice || ""}
-            onChange={(event) => onChange({ ...filters, minPrice: event.target.value || undefined })}
+            onChange={(event) =>
+              onChange({ ...filters, minPrice: sanitizeBudgetInput(event.target.value) })
+            }
+            onWheel={(event) => event.currentTarget.blur()}
             placeholder={facets.priceRange ? String(facets.priceRange.min) : "Min"}
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
           />
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={filters.maxPrice || ""}
-            onChange={(event) => onChange({ ...filters, maxPrice: event.target.value || undefined })}
+            onChange={(event) =>
+              onChange({ ...filters, maxPrice: sanitizeBudgetInput(event.target.value) })
+            }
+            onWheel={(event) => event.currentTarget.blur()}
             placeholder={facets.priceRange ? String(facets.priceRange.max) : "Max"}
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
           />
@@ -309,7 +321,14 @@ export function FilterSidebar({
         <div className="mt-2 space-y-2">
           <input
             value={filters.city || ""}
-            onChange={(event) => onChange({ ...filters, city: event.target.value || undefined })}
+            onChange={(event) => {
+              const nextCity = event.target.value || undefined;
+              onChange({
+                ...filters,
+                city: nextCity,
+                locality: nextCity ? filters.locality : undefined,
+              });
+            }}
             placeholder="City"
             list={cityOptionsId}
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"

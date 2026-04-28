@@ -14,22 +14,22 @@ const config = {
   identity: {
     label: "Identity Verified",
     icon: BadgeCheck,
-    classes: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    classes: "bg-blue-50 text-blue-700 border-blue-100",
   },
   trusted: {
     label: "Trusted Lender",
     icon: ShieldCheck,
-    classes: "bg-violet-50 text-violet-700 border-violet-100",
+    classes: "bg-blue-50 text-blue-700 border-blue-100",
   },
   delivery: {
     label: "Delivery Available",
     icon: Truck,
-    classes: "bg-amber-50 text-amber-700 border-amber-100",
+    classes: "bg-blue-50 text-blue-700 border-blue-100",
   },
   deposit: {
     label: "Deposit Required",
     icon: ShieldCheck,
-    classes: "bg-rose-50 text-rose-700 border-rose-100",
+    classes: "bg-blue-50 text-blue-700 border-blue-100",
   },
 } as const;
 

@@ -4,6 +4,7 @@ import { Conversation, Listing, RentalRequest } from "../models";
 import { requireAuth } from "../middleware/auth";
 import { canTransitionStatus } from "../utils/statusMachine";
 import { asyncHandler } from "../utils/http";
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
@@ -30,6 +31,13 @@ const updateStatusSchema = z.object({
     "cancelled",
   ]),
 });
+
+function formatStatusLabel(status: string) {
+  return status
+    .split("_")
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
+}
 
 router.get(
   "/",
@@ -167,6 +175,19 @@ router.post(
       ],
     });
 
+    await createNotification({
+      userId: String(listing.ownerId),
+      actorId: req.user?._id,
+      type: "request_created",
+      title: "New request on your listing",
+      message: `${listing.title} has a new booking request.`,
+      link: `/chat/${conversation._id}`,
+      metadata: {
+        requestId: String(request._id),
+        listingId: String(listing._id),
+      },
+    });
+
     return res.status(201).json({
       data: { request, conversationId: conversation._id },
     });
@@ -209,6 +230,23 @@ router.put(
       }
       await listing.save();
     }
+
+    const conversation = await Conversation.findOne({ requestId: requestDoc._id })
+      .select("_id")
+      .lean();
+    const counterpartUserId = isLender ? String(requestDoc.renterId) : String(requestDoc.lenderId);
+    await createNotification({
+      userId: counterpartUserId,
+      actorId: req.user?._id,
+      type: "request_status_changed",
+      title: "Booking status updated",
+      message: `Your request is now ${formatStatusLabel(status)}.`,
+      link: conversation?._id ? `/chat/${conversation._id}` : "/dashboard/renter",
+      metadata: {
+        requestId: String(requestDoc._id),
+        status,
+      },
+    });
 
     return res.json({ data: requestDoc });
   }),

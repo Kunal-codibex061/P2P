@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import { env } from "../config/env";
 import { Conversation, ItemRequest, RentalRequest, User } from "../models";
 import { requireAuth } from "../middleware/auth";
 import { asyncHandler } from "../utils/http";
@@ -41,7 +42,7 @@ function emitConversationMessage(userId: string, payload: unknown) {
 }
 
 async function getUserIdFromToken(token: string) {
-  const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev-secret") as AuthUserPayload;
+  const decoded = jwt.verify(token, env.JWT_SECRET) as AuthUserPayload;
   const user = await User.findById(decoded.id).select("_id").lean();
   return user ? String(user._id) : null;
 }

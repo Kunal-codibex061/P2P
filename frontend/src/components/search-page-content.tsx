@@ -46,7 +46,10 @@ export function SearchPageContent() {
 
   const categories = categoriesQuery.data?.data.categories || [];
   const categoryLabels = categories.map((item) => item.label);
-  const selectedCategory = categories.find((item) => item.label === filters.category);
+  const selectedCategory =
+    filters.categories.length === 1
+      ? categories.find((item) => item.label === filters.categories[0])
+      : undefined;
 
   const listingsQueryString = useMemo(() => toListingsApiQueryString(filters), [filters]);
 
@@ -95,7 +98,7 @@ export function SearchPageContent() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
-        <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-fit">
+        <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
           <FilterSidebar
             filters={filters}
             facets={facets}

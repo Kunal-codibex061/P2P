@@ -6,8 +6,8 @@ export function SafetyBanner() {
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          Keep communication inside the app. Never share OTPs or make suspicious
-          payments outside the platform.
+          Stay safe from scams. Keep records in chat, avoid sharing OTPs or sensitive details, and
+          verify people before any handover.
         </p>
       </div>
     </div>

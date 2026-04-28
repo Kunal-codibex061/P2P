@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2 } from "lucide-react";
+import { ImagePlus, Loader2, Pencil, X } from "lucide-react";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
@@ -18,13 +18,8 @@ export default function KycProfilePage() {
     phone: "",
     profilePhoto: "",
   });
-  const [passwordDraft, setPasswordDraft] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
+  const [isEditing, setIsEditing] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
-  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [photoUploadPending, setPhotoUploadPending] = useState(false);
 
   const profileQuery = useQuery({
@@ -45,7 +40,7 @@ export default function KycProfilePage() {
   );
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || isEditing) return;
     const timer = window.setTimeout(() => {
       setProfileDraft({
         name: profile.name || "",
@@ -55,7 +50,7 @@ export default function KycProfilePage() {
       });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [profile]);
+  }, [isEditing, profile]);
 
   const updateProfileMutation = useMutation({
     mutationFn: () =>
@@ -71,6 +66,7 @@ export default function KycProfilePage() {
       ),
     onSuccess: async () => {
       setProfileMessage("Account details updated successfully.");
+      setIsEditing(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["me"] }),
         refreshMe(),
@@ -78,22 +74,6 @@ export default function KycProfilePage() {
     },
     onError: (error: Error) => {
       setProfileMessage(error.message || "Unable to save account details.");
-    },
-  });
-
-  const updatePasswordMutation = useMutation({
-    mutationFn: () =>
-      api.put<{ message: string }>("/api/users/me/password", passwordDraft, token),
-    onSuccess: () => {
-      setPasswordMessage("Password changed successfully.");
-      setPasswordDraft({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-    },
-    onError: (error: Error) => {
-      setPasswordMessage(error.message || "Unable to change password.");
     },
   });
 
@@ -127,6 +107,7 @@ export default function KycProfilePage() {
   }
 
   async function onPhotoSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!isEditing) return;
     const file = event.target.files?.[0];
     event.currentTarget.value = "";
     if (!file) return;
@@ -155,37 +136,11 @@ export default function KycProfilePage() {
       setProfileMessage("Email is required.");
       return;
     }
-    if (!profileDraft.phone.trim()) {
-      setProfileMessage("Phone number is required.");
-      return;
-    }
     if (!profileDraft.profilePhoto.trim()) {
       setProfileMessage("Profile photo URL is required.");
       return;
     }
     updateProfileMutation.mutate();
-  }
-
-  function onSubmitPassword(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPasswordMessage(null);
-    if (
-      !passwordDraft.currentPassword ||
-      !passwordDraft.newPassword ||
-      !passwordDraft.confirmPassword
-    ) {
-      setPasswordMessage("All password fields are required.");
-      return;
-    }
-    if (passwordDraft.newPassword.length < 8) {
-      setPasswordMessage("New password must be at least 8 characters.");
-      return;
-    }
-    if (passwordDraft.newPassword !== passwordDraft.confirmPassword) {
-      setPasswordMessage("New password and confirmation do not match.");
-      return;
-    }
-    updatePasswordMutation.mutate();
   }
 
   return (
@@ -194,90 +149,159 @@ export default function KycProfilePage() {
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Account Settings</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Update your profile details and password. Phone verification is not required in v1.
+            Update your profile details. Login is now managed through Firebase (Google or phone OTP).
           </p>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className="grid gap-4">
           <form
             onSubmit={onSubmitProfile}
             className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
           >
-            <div className="flex items-center gap-3">
-              <img
-                src={profileDraft.profilePhoto || profile?.profilePhoto}
-                alt={profileDraft.name || profile?.name || "Profile"}
-                className="h-14 w-14 rounded-full object-cover"
-              />
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-slate-900">{profileDraft.name || "Your name"}</p>
-                <p className="text-sm text-slate-500">{profileDraft.email || "your@email.com"}</p>
+                <p className="text-base font-semibold text-slate-900">Profile Details</p>
+                <p className="text-xs text-slate-500">
+                  {isEditing
+                    ? "Edit fields and save your changes."
+                    : "View your current account information."}
+                </p>
+              </div>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!profile) return;
+                    setProfileDraft({
+                      name: profile.name || "",
+                      email: profile.email || "",
+                      phone: profile.phone || "",
+                      profilePhoto: profile.profilePhoto || "",
+                    });
+                    setProfileMessage(null);
+                    setIsEditing(false);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileMessage(null);
+                    setIsEditing(true);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </button>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <img
+                  src={profileDraft.profilePhoto || profile?.profilePhoto}
+                  alt={profileDraft.name || profile?.name || "Profile"}
+                  className="h-20 w-20 rounded-full border border-slate-200 object-cover"
+                />
+                <div className="min-w-[220px] flex-1">
+                  <p className="text-sm font-semibold text-slate-900">Profile Photo</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Upload a clear face photo so other users can recognize and trust your account.
+                  </p>
+                  {isEditing ? (
+                    <>
+                      <input
+                        id="profile-photo-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => void onPhotoSelected(event)}
+                      />
+                      <label
+                        htmlFor="profile-photo-upload"
+                        className="mt-3 inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                      >
+                        {photoUploadPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <ImagePlus className="h-4 w-4" />
+                            Update Photo
+                          </>
+                        )}
+                      </label>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Name</p>
+                  <p className="text-sm font-semibold text-slate-900">{profileDraft.name || ""}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Email</p>
+                  <p className="text-sm font-semibold text-slate-900">{profileDraft.email || ""}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Phone Number</p>
+                  <p className="text-sm font-semibold text-slate-900">{profileDraft.phone || ""}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 sm:col-span-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Location</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {(profile?.city || "-") + (profile?.locality ? `, ${profile.locality}` : "")}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1 sm:col-span-2">
-                <span className="text-xs font-medium text-slate-600">Full name</span>
-                <input
-                  value={profileDraft.name}
-                  onChange={(event) =>
-                    setProfileDraft((prev) => ({ ...prev, name: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
-                />
-              </label>
-              <label className="space-y-1 sm:col-span-2">
-                <span className="text-xs font-medium text-slate-600">Email</span>
-                <input
-                  type="email"
-                  value={profileDraft.email}
-                  onChange={(event) =>
-                    setProfileDraft((prev) => ({ ...prev, email: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-slate-600">Phone number</span>
-                <input
-                  type="tel"
-                  value={profileDraft.phone}
-                  onChange={(event) =>
-                    setProfileDraft((prev) => ({ ...prev, phone: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-slate-600">Profile photo</span>
-                <input
-                  id="profile-photo-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => void onPhotoSelected(event)}
-                />
-                <label
-                  htmlFor="profile-photo-upload"
-                  className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                >
-                  {photoUploadPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <ImagePlus className="h-4 w-4" />
-                      Upload Photo
-                    </>
-                  )}
+            {isEditing ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="space-y-1">
+                  <span className="text-xs font-medium text-slate-600">Full name</span>
+                  <input
+                    value={profileDraft.name}
+                    onChange={(event) =>
+                      setProfileDraft((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
+                  />
                 </label>
-                <p className="line-clamp-1 text-xs text-slate-500">
-                  {profileDraft.profilePhoto ? "Photo selected and ready to save." : "No photo selected."}
-                </p>
-              </label>
-            </div>
+                <label className="space-y-1 sm:col-span-2">
+                  <span className="text-xs font-medium text-slate-600">Email</span>
+                  <input
+                    type="email"
+                    value={profileDraft.email}
+                    onChange={(event) =>
+                      setProfileDraft((prev) => ({ ...prev, email: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
+                  />
+                </label>
+                <label className="space-y-1 sm:col-span-1">
+                  <span className="text-xs font-medium text-slate-600">Phone number</span>
+                  <input
+                    type="tel"
+                    value={profileDraft.phone}
+                    onChange={(event) =>
+                      setProfileDraft((prev) => ({ ...prev, phone: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
+                    placeholder="Optional"
+                  />
+                </label>
+              </div>
+            ) : null}
 
             {profileMessage ? (
               <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -285,72 +309,17 @@ export default function KycProfilePage() {
               </p>
             ) : null}
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={updateProfileMutation.isPending || photoUploadPending || !isProfileDirty}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium !text-white transition hover:bg-slate-700 disabled:opacity-60"
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Account Info"}
-              </button>
-            </div>
-          </form>
-
-          <form
-            onSubmit={onSubmitPassword}
-            className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <p className="text-base font-semibold text-slate-900">Change Password</p>
-            <p className="text-xs text-slate-500">Seeded account passwords use the Name@123 format.</p>
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Current password</span>
-              <input
-                type="password"
-                value={passwordDraft.currentPassword}
-                onChange={(event) =>
-                  setPasswordDraft((prev) => ({ ...prev, currentPassword: event.target.value }))
-                }
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">New password</span>
-              <input
-                type="password"
-                value={passwordDraft.newPassword}
-                onChange={(event) =>
-                  setPasswordDraft((prev) => ({ ...prev, newPassword: event.target.value }))
-                }
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Confirm new password</span>
-              <input
-                type="password"
-                value={passwordDraft.confirmPassword}
-                onChange={(event) =>
-                  setPasswordDraft((prev) => ({ ...prev, confirmPassword: event.target.value }))
-                }
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
-              />
-            </label>
-
-            {passwordMessage ? (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                {passwordMessage}
-              </p>
+            {isEditing ? (
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={updateProfileMutation.isPending || photoUploadPending || !isProfileDirty}
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium !text-white transition hover:bg-slate-700 disabled:opacity-60"
+                >
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Account Info"}
+                </button>
+              </div>
             ) : null}
-
-            <div className="pt-1">
-              <button
-                type="submit"
-                disabled={updatePasswordMutation.isPending}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-slate-700 disabled:opacity-60"
-              >
-                {updatePasswordMutation.isPending ? "Updating..." : "Update Password"}
-              </button>
-            </div>
           </form>
         </section>
       </div>

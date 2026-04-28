@@ -1,5 +1,5 @@
 export interface ListingFiltersV2 {
-  category?: string;
+  categories: string[];
   q?: string;
   city?: string;
   locality?: string;
@@ -35,7 +35,7 @@ function parseRepeated(params: URLSearchParams, key: string): string[] {
 
 export function createDefaultListingFilters(overrides?: Partial<ListingFiltersV2>): ListingFiltersV2 {
   return {
-    category: overrides?.category,
+    categories: overrides?.categories || [],
     q: overrides?.q,
     city: overrides?.city,
     locality: overrides?.locality,
@@ -65,7 +65,9 @@ export function parseListingFiltersFromParams(
   });
 
   return createDefaultListingFilters({
-    category: options?.fixedCategory || normalizeSingle(params.get("category")),
+    categories: options?.fixedCategory
+      ? [options.fixedCategory]
+      : parseRepeated(params, "category"),
     q: normalizeSingle(params.get("q")),
     city: normalizeSingle(params.get("city")),
     locality: normalizeSingle(params.get("locality")),
@@ -89,7 +91,9 @@ export function serializeListingFiltersToParams(
   const params = new URLSearchParams();
   const includeCategory = options?.includeCategory ?? true;
 
-  if (includeCategory && filters.category) params.set("category", filters.category);
+  if (includeCategory) {
+    filters.categories.forEach((category) => params.append("category", category));
+  }
   if (filters.q) params.set("q", filters.q);
   if (filters.city) params.set("city", filters.city);
   if (filters.locality) params.set("locality", filters.locality);
@@ -125,7 +129,8 @@ export function toListingsApiQueryString(
     includeCategory: !options?.fixedCategory,
   });
   if (options?.fixedCategory) {
-    params.set("category", options.fixedCategory);
+    params.delete("category");
+    params.append("category", options.fixedCategory);
   }
   if (!params.get("availability") && !(filters.startDate && filters.endDate)) {
     params.set("availability", "available");
@@ -137,9 +142,16 @@ export function withCategoryChange(
   filters: ListingFiltersV2,
   category?: string,
 ): ListingFiltersV2 {
+  return withCategoriesChange(filters, category ? [category] : []);
+}
+
+export function withCategoriesChange(
+  filters: ListingFiltersV2,
+  categories: string[],
+): ListingFiltersV2 {
   return {
     ...filters,
-    category,
+    categories: dedupe(categories),
     subcategories: [],
     specifications: {},
   };
@@ -147,7 +159,7 @@ export function withCategoryChange(
 
 export function clearListingFilters(lockedCategory?: string): ListingFiltersV2 {
   return createDefaultListingFilters({
-    category: lockedCategory,
+    categories: lockedCategory ? [lockedCategory] : [],
   });
 }
 
@@ -156,7 +168,7 @@ export function countActiveFilters(
   options?: { excludeCategory?: boolean },
 ): number {
   let count = 0;
-  if (!options?.excludeCategory && filters.category) count += 1;
+  if (!options?.excludeCategory) count += filters.categories.length;
   if (filters.q) count += 1;
   if (filters.city) count += 1;
   if (filters.locality) count += 1;

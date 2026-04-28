@@ -8,9 +8,10 @@ import type { Category } from "@/types/domain";
 
 interface CategoryShowcaseProps {
   categories: Category[];
+  selectedCity?: string;
 }
 
-export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
+export function CategoryShowcase({ categories, selectedCity }: CategoryShowcaseProps) {
   const shouldReduceMotion = useReducedMotion();
   const categoryFallback = "/images/categories/furniture.jpg";
 
@@ -32,7 +33,11 @@ export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
             const card = (
               <Link
                 key={category.key}
-                href={`/categories/${category.key}`}
+                href={
+                  selectedCity
+                    ? `/categories/${category.key}?city=${encodeURIComponent(selectedCity)}`
+                    : `/categories/${category.key}`
+                }
                 className="group grid h-full grid-cols-[7rem_minmax(0,1fr)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg"
               >
                 <div className="h-28 overflow-hidden rounded-xl bg-slate-100">

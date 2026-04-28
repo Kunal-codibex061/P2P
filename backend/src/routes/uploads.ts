@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { Router } from "express";
 import multer from "multer";
+import { env } from "../config/env";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -37,13 +38,20 @@ router.post("/images", requireAuth, upload.single("image"), (req, res) => {
     return res.status(400).json({ message: "Image file is required." });
   }
 
-  const host = req.get("host");
-  const baseUrl = `${req.protocol}://${host}`;
   const relativePath = `/uploads/listings/${req.file.filename}`;
+  const host = req.get("host");
+  const forwardedProto = req
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim();
+  const protocol = forwardedProto || req.protocol;
+  const requestBaseUrl = host ? `${protocol}://${host}` : "";
+  const baseUrl = env.BACKEND_PUBLIC_URL || requestBaseUrl;
+  const resolvedUrl = `${baseUrl}${relativePath}`;
 
   return res.status(201).json({
     data: {
-      url: `${baseUrl}${relativePath}`,
+      url: resolvedUrl,
       path: relativePath,
     },
   });

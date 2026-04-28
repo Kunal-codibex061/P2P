@@ -50,6 +50,7 @@ export default function ListingDetailPage() {
 
   const listing = listingQuery.data?.data;
   const owner = listing?.ownerId as User | undefined;
+  const isOwner = Boolean(user?._id && owner?._id && user._id === owner._id);
   const galleryPhotos =
     listing?.photos && listing.photos.length > 0
       ? listing.photos.slice(0, 3)
@@ -99,6 +100,32 @@ export default function ListingDetailPage() {
     }
   }
 
+  async function handleListingStatusChange(nextStatus: Listing["availabilityStatus"]) {
+    if (!token || !listing) return;
+    try {
+      await api.put<Listing>(`/api/listings/${listing._id}`, { availabilityStatus: nextStatus }, token);
+      await queryClient.invalidateQueries({ queryKey: ["listing", params.id] });
+      await queryClient.invalidateQueries({ queryKey: ["listing-requests", params.id, user?._id] });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Unable to update listing status.");
+    }
+  }
+
+  async function handleDeleteListing() {
+    if (!token || !listing) return;
+    const shouldDelete = window.confirm(
+      "Delete this posting? This removes it from listings and cannot be undone.",
+    );
+    if (!shouldDelete) return;
+
+    try {
+      await api.delete<{ message: string }>(`/api/listings/${listing._id}`, token);
+      router.push("/dashboard/lender");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Unable to delete this listing.");
+    }
+  }
+
   if (listingQuery.isLoading || !listing) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
@@ -138,10 +165,12 @@ export default function ListingDetailPage() {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-slate-900">
-                {formatCurrency(listing.rentPrice)}
-              </p>
-              <p className="text-sm text-slate-500">per {listing.rentUnit}</p>
+              <div className="inline-flex flex-col rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2">
+                <p className="text-2xl font-black text-blue-700">
+                  {formatCurrency(listing.rentPrice)}
+                </p>
+                <p className="text-sm font-semibold text-blue-700/80">per {listing.rentUnit}</p>
+              </div>
             </div>
           </div>
 
@@ -225,7 +254,39 @@ export default function ListingDetailPage() {
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-medium text-slate-500">Booking Action</p>
-          {myRequest && conversationForRequest ? (
+          {isOwner ? (
+            <div className="mt-3 space-y-2">
+              <Link
+                href={`/listings/${listing._id}/edit`}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold !text-white hover:bg-slate-700"
+              >
+                Edit Posting
+              </Link>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-slate-600">Item Status</span>
+                <select
+                  value={listing.availabilityStatus}
+                  onChange={(event) =>
+                    void handleListingStatusChange(event.target.value as Listing["availabilityStatus"])
+                  }
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="available">Available</option>
+                  <option value="unavailable">Unavailable</option>
+                  <option value="rented">Rented</option>
+                </select>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => void handleDeleteListing()}
+                className="w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100"
+              >
+                Delete Posting
+              </button>
+            </div>
+          ) : myRequest && conversationForRequest ? (
             <Link
               href={`/chat/${conversationForRequest._id}`}
               className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold !text-white hover:bg-slate-700"
@@ -241,7 +302,9 @@ export default function ListingDetailPage() {
             </button>
           )}
           <p className="mt-2 text-xs text-slate-500">
-            {myRequest
+            {isOwner
+              ? "You are the owner of this listing. Manage status, edit details, or remove this posting."
+              : myRequest
               ? `Request status: ${myRequest.status.replace("_", " ")}`
               : "Submit dates and purpose to start secure in-app chat."}
           </p>
@@ -256,7 +319,7 @@ export default function ListingDetailPage() {
             </li>
             <li className="flex gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
-              Keep all conversation and payments inside the app.
+              Keep records in chat and stay alert for scams or suspicious payment asks.
             </li>
           </ul>
           <div className="mt-4 flex gap-2">
@@ -270,7 +333,7 @@ export default function ListingDetailPage() {
         </div>
       </aside>
 
-      {showRequestModal ? (
+      {!isOwner && showRequestModal ? (
         <RequestModal
           open={showRequestModal}
           onClose={() => setShowRequestModal(false)}

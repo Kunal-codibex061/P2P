@@ -169,6 +169,27 @@ export interface FacetOption {
   count: number;
 }
 
+export interface NotificationItem {
+  _id: string;
+  userId: string;
+  actorId?: string | null;
+  type:
+    | "request_created"
+    | "request_status_changed"
+    | "item_request_response"
+    | "item_request_status_changed"
+    | "listing_status_changed"
+    | "listing_deleted"
+    | "general";
+  title: string;
+  message: string;
+  link?: string;
+  metadata?: Record<string, unknown>;
+  readAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface ListingFacets {
   priceRange: { min: number; max: number } | null;
   subcategories: FacetOption[];

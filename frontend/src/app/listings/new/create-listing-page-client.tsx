@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Info, Loader2, X } from "lucide-react";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
@@ -58,12 +58,23 @@ const initialUploadingState: Record<PhotoAngleKey, boolean> = {
   side4: false,
 };
 
-export default function CreateListingPage() {
+interface CreateListingPageProps {
+  mode?: "create" | "edit";
+  listingId?: string;
+}
+
+interface ToastState {
+  message: string;
+  type: "error" | "success";
+}
+
+export default function CreateListingPage({ mode = "create", listingId }: CreateListingPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
+  const isEditMode = mode === "edit" && Boolean(listingId);
   const handoff = readListingResponseHandoffParams(searchParams);
-  const isRespondFlow = Boolean(handoff);
+  const isRespondFlow = !isEditMode && Boolean(handoff);
 
   const { data } = useQuery({
     queryKey: ["categories"],
@@ -71,6 +82,11 @@ export default function CreateListingPage() {
   });
 
   const categories = useMemo(() => data?.data.categories || [], [data?.data.categories]);
+  const listingQuery = useQuery({
+    queryKey: ["edit-listing", listingId],
+    enabled: Boolean(isEditMode && listingId),
+    queryFn: () => api.get<Listing>(`/api/listings/${listingId}`),
+  });
 
   const [form, setForm] = useState({
     title: "",
@@ -95,12 +111,98 @@ export default function CreateListingPage() {
   const [photoUploading, setPhotoUploading] =
     useState<Record<PhotoAngleKey, boolean>>(initialUploadingState);
   const [saving, setSaving] = useState(false);
+  const [hasHydratedExistingListing, setHasHydratedExistingListing] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const activeCategory = useMemo(
     () => categories.find((category) => category.label === form.category),
     [categories, form.category],
   );
   const activeSpecs = categorySpecs[form.category] || [];
+  const isLoadingExistingListing = isEditMode && !hasHydratedExistingListing && listingQuery.isLoading;
+
+  useEffect(() => {
+    if (!isEditMode || !listingQuery.data?.data || hasHydratedExistingListing) return;
+    const listing = listingQuery.data.data;
+
+    const pricingOptions =
+      listing.pricingOptions && listing.pricingOptions.length > 0
+        ? listing.pricingOptions
+        : [{ unit: listing.rentUnit, price: listing.rentPrice }];
+    const enabledRentUnits = { day: false, week: false, month: false } as Record<
+      RentUnit,
+      boolean
+    >;
+    const rentPricing = { day: "", week: "", month: "" } as Record<RentUnit, string>;
+    pricingOptions.forEach((option) => {
+      enabledRentUnits[option.unit] = true;
+      rentPricing[option.unit] = String(option.price || "");
+    });
+    if (!enabledRentUnits[listing.rentUnit]) {
+      enabledRentUnits[listing.rentUnit] = true;
+      rentPricing[listing.rentUnit] = String(listing.rentPrice || "");
+    }
+
+    const photoUrls = { ...initialPhotoUrls };
+    photoAngles.forEach((angle, index) => {
+      photoUrls[angle.key] = listing.photos[index] || "";
+    });
+
+    const listingSpecs = listing.specifications || {};
+    const specFields = categorySpecs[listing.category] || Object.keys(listingSpecs).slice(0, 2);
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setForm({
+      title: listing.title || "",
+      category: listing.category || "",
+      subcategory: listing.subcategory || "",
+      description: listing.description || "",
+      photoUrls,
+      condition: listing.condition || "Like New",
+      replacementValue: String(listing.replacementValue || ""),
+      rentPricing,
+      enabledRentUnits,
+      primaryRentUnit: listing.rentUnit,
+      depositAmount: String(listing.depositAmount || ""),
+      city: listing.city || "",
+      locality: listing.locality || "",
+      deliveryAvailable: Boolean(listing.deliveryAvailable),
+      rules: (listing.rules || []).join(", "),
+      accessories: (listing.accessories || []).join(", "),
+      spec1: String((specFields[0] && listingSpecs[specFields[0]]) || ""),
+      spec2: String((specFields[1] && listingSpecs[specFields[1]]) || ""),
+    });
+    setHasHydratedExistingListing(true);
+  }, [hasHydratedExistingListing, isEditMode, listingQuery.data?.data]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  function showToast(message: string, type: "error" | "success" = "error") {
+    setToast({ message, type });
+  }
+
+  function parseFriendlyListingError(error: unknown, fallbackMessage: string) {
+    if (!(error instanceof Error)) return fallbackMessage;
+    const raw = error.message.trim();
+    if (!raw) return fallbackMessage;
+    const lowered = raw.toLowerCase();
+
+    if (lowered.includes("invalid url")) return "Please upload valid image files for all required angles.";
+    if (lowered.includes("title")) return "Title is too short. Add at least 3 characters.";
+    if (lowered.includes("category")) return "Please choose a valid category and subcategory.";
+    if (lowered.includes("description")) return "Description is too short. Add at least 10 characters.";
+    if (lowered.includes("replacementvalue")) return "Replacement value must be greater than 0.";
+    if (lowered.includes("depositamount")) return "Deposit amount cannot be negative.";
+    if (lowered.includes("rentprice")) return "Rent must be greater than 0.";
+    if (lowered.includes("city") || lowered.includes("locality")) {
+      return "Please enter both city and locality.";
+    }
+    return raw;
+  }
 
   async function uploadListingImage(file: File) {
     if (!token) {
@@ -144,7 +246,7 @@ export default function CreateListingPage() {
         photoUrls: { ...prev.photoUrls, [angle]: uploadedUrl },
       }));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Image upload failed.");
+      showToast(parseFriendlyListingError(error, "Image upload failed."));
     } finally {
       setPhotoUploading((prev) => ({ ...prev, [angle]: false }));
     }
@@ -164,12 +266,28 @@ export default function CreateListingPage() {
 
   return (
     <RequireAuth>
+      {toast ? (
+        <div className="pointer-events-none fixed right-4 top-20 z-[120] max-w-sm">
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg ${
+              toast.type === "error"
+                ? "border-rose-200 bg-rose-50 text-rose-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-8">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Create Listing</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {isEditMode ? "Edit Listing" : "Create Listing"}
+          </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Help renters trust your listing with complete angles, flexible pricing, and clear usage
-            terms.
+            {isEditMode
+              ? "Update your listing details, pricing, and availability to keep requests accurate."
+              : "Help renters trust your listing with complete angles, flexible pricing, and clear usage terms."}
           </p>
           {isRespondFlow ? (
             <p className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
@@ -177,12 +295,29 @@ export default function CreateListingPage() {
               right after publishing.
             </p>
           ) : null}
+          {isLoadingExistingListing ? (
+            <p className="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
+              Loading your listing details...
+            </p>
+          ) : null}
+          {isEditMode && listingQuery.isError ? (
+            <p className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-800">
+              Unable to load this listing for editing. Please retry from the listing page.
+            </p>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Fields marked with <span className="font-black">*</span> are compulsory.
+            </p>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Title</span>
+              <span className="text-xs font-medium text-slate-600">Title *</span>
               <input
                 value={form.title}
                 onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
@@ -192,7 +327,7 @@ export default function CreateListingPage() {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Category</span>
+              <span className="text-xs font-medium text-slate-600">Category *</span>
               <select
                 value={form.category}
                 onChange={(event) =>
@@ -214,7 +349,7 @@ export default function CreateListingPage() {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Subcategory</span>
+              <span className="text-xs font-medium text-slate-600">Subcategory *</span>
               <select
                 value={form.subcategory}
                 onChange={(event) =>
@@ -250,7 +385,7 @@ export default function CreateListingPage() {
           </div>
 
           <label className="mt-4 block space-y-1">
-            <span className="text-xs font-medium text-slate-600">Description</span>
+            <span className="text-xs font-medium text-slate-600">Description *</span>
             <textarea
               value={form.description}
               onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
@@ -260,11 +395,9 @@ export default function CreateListingPage() {
           </label>
 
           <div className="mt-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-slate-600">
-                Listing Photos (6 slots: Top, Bottom, Side 1, Side 2, Side 3, Side 4)
-              </p>
-              <p className="text-xs text-slate-500">Upload from system or paste URL</p>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
+              <Info className="h-4 w-4 text-blue-700" />
+              <p>Listing Photos * (6 slots: Top, Bottom, Side 1, Side 2, Side 3, Side 4)</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -307,7 +440,7 @@ export default function CreateListingPage() {
                             Uploading
                           </>
                         ) : (
-                          "Upload from system"
+                          "Upload Photo"
                         )}
                       </label>
                       {value ? (
@@ -326,18 +459,6 @@ export default function CreateListingPage() {
                         </button>
                       ) : null}
                     </div>
-
-                    <input
-                      value={value}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          photoUrls: { ...prev.photoUrls, [angle.key]: event.target.value },
-                        }))
-                      }
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
-                      placeholder="Or paste image URL"
-                    />
                   </div>
                 );
               })}
@@ -346,7 +467,7 @@ export default function CreateListingPage() {
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Replacement Value</span>
+              <span className="text-xs font-medium text-slate-600">Replacement Value *</span>
               <input
                 type="number"
                 value={form.replacementValue}
@@ -358,7 +479,7 @@ export default function CreateListingPage() {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Deposit Amount</span>
+              <span className="text-xs font-medium text-slate-600">Deposit Amount *</span>
               <input
                 type="number"
                 value={form.depositAmount}
@@ -372,7 +493,10 @@ export default function CreateListingPage() {
 
           <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900">Rent Pricing</p>
+              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+                <Info className="h-4 w-4 text-blue-700" />
+                Rent Pricing *
+              </p>
               <p className="text-xs text-slate-500">
                 Add one or more rent units. Example: per day + per week + per month.
               </p>
@@ -410,7 +534,7 @@ export default function CreateListingPage() {
 
             <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr]">
               <label className="space-y-1">
-                <span className="text-xs font-medium text-slate-600">Primary display price</span>
+                <span className="text-xs font-medium text-slate-600">Primary display price *</span>
                 <select
                   value={form.primaryRentUnit}
                   onChange={(event) =>
@@ -433,7 +557,7 @@ export default function CreateListingPage() {
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">City</span>
+              <span className="text-xs font-medium text-slate-600">City *</span>
               <input
                 value={form.city}
                 onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))}
@@ -441,7 +565,7 @@ export default function CreateListingPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-slate-600">Locality</span>
+              <span className="text-xs font-medium text-slate-600">Locality *</span>
               <input
                 value={form.locality}
                 onChange={(event) => setForm((prev) => ({ ...prev, locality: event.target.value }))}
@@ -508,14 +632,44 @@ export default function CreateListingPage() {
 
           <div className="mt-6 flex justify-end">
             <button
-              disabled={saving}
+              disabled={saving || isLoadingExistingListing}
               onClick={async () => {
+                if (isEditMode && !listingId) {
+                  showToast("Listing id is missing.");
+                  return;
+                }
+
+                if (!form.title.trim()) {
+                  showToast("Title is required.");
+                  return;
+                }
+                if (!form.category.trim() || !form.subcategory.trim()) {
+                  showToast("Please select category and subcategory.");
+                  return;
+                }
+                if (form.description.trim().length < 10) {
+                  showToast("Description is too short. Please write at least 10 characters.");
+                  return;
+                }
+                if (!form.city.trim() || !form.locality.trim()) {
+                  showToast("Please enter both city and locality.");
+                  return;
+                }
+                if (Number(form.replacementValue) <= 0 || Number.isNaN(Number(form.replacementValue))) {
+                  showToast("Replacement value must be greater than 0.");
+                  return;
+                }
+                if (Number(form.depositAmount) < 0 || Number.isNaN(Number(form.depositAmount))) {
+                  showToast("Deposit amount cannot be negative.");
+                  return;
+                }
+
                 const requiredAngles: PhotoAngleKey[] = ["top", "bottom", "side1"];
                 const missingRequiredAngles = requiredAngles.filter(
                   (angle) => !form.photoUrls[angle].trim(),
                 );
                 if (missingRequiredAngles.length > 0) {
-                  alert("Please upload at least Top, Bottom, and Side 1 photos.");
+                  showToast("Please upload at least Top, Bottom, and Side 1 photos.");
                   return;
                 }
 
@@ -523,7 +677,7 @@ export default function CreateListingPage() {
                   .map((angle) => form.photoUrls[angle.key].trim())
                   .filter(Boolean);
                 if (photos.length === 0) {
-                  alert("Please add at least one photo.");
+                  showToast("Please add at least one photo.");
                   return;
                 }
 
@@ -531,7 +685,7 @@ export default function CreateListingPage() {
                   .filter((unit) => form.enabledRentUnits[unit] && Number(form.rentPricing[unit]) > 0)
                   .map((unit) => ({ unit, price: Number(form.rentPricing[unit]) }));
                 if (pricingOptions.length === 0) {
-                  alert("Please add at least one valid rent price.");
+                  showToast("Please add at least one valid rent price.");
                   return;
                 }
 
@@ -579,49 +733,59 @@ export default function CreateListingPage() {
                       .filter(Boolean),
                     specifications,
                   };
-                  const response = await api.post<Listing>("/api/listings", payload, token);
-                  const createdListing = response.data;
+                  const response = isEditMode
+                    ? await api.put<Listing>(`/api/listings/${listingId}`, payload, token)
+                    : await api.post<Listing>("/api/listings", payload, token);
+                  const savedListing = response.data;
 
-                  if (handoff) {
+                  if (!isEditMode && handoff) {
                     const autoMessage =
                       handoff.responseMessage.length >= 3
                         ? handoff.responseMessage
-                        : `Hi, I have listed "${createdListing.title}" and can help with your request.`;
+                        : `Hi, I have listed "${savedListing.title}" and can help with your request.`;
 
                     try {
                       const respondResult = await api.post<{ conversationId: string }>(
                         `/api/item-requests/${handoff.respondToItemRequestId}/respond`,
                         {
-                          listingId: createdListing._id,
+                          listingId: savedListing._id,
                           message: autoMessage,
-                          proposedRent: createdListing.rentPrice,
-                          proposedDeposit: createdListing.depositAmount,
+                          proposedRent: savedListing.rentPrice,
+                          proposedDeposit: savedListing.depositAmount,
                         },
                         token,
                       );
                       router.push(`/chat/${respondResult.data.conversationId}`);
                       return;
                     } catch (error) {
-                      alert(
+                      showToast(
                         error instanceof Error
-                          ? `${error.message} Listing was created successfully; opening your listing now.`
+                          ? `${parseFriendlyListingError(error, "Could not finish request response.")} Listing was created successfully; opening your listing now.`
                           : "Listing was created, but we could not complete request response. Opening listing.",
                       );
-                      router.push(`/listings/${createdListing._id}`);
+                      router.push(`/listings/${savedListing._id}`);
                       return;
                     }
                   }
 
-                  router.push(`/listings/${createdListing._id}`);
+                  if (isEditMode) {
+                    showToast("Listing updated successfully.", "success");
+                  }
+                  router.push(`/listings/${savedListing._id}`);
                 } catch (error) {
-                  alert(error instanceof Error ? error.message : "Unable to create listing.");
+                  showToast(
+                    parseFriendlyListingError(
+                      error,
+                      isEditMode ? "Unable to update listing." : "Unable to create listing.",
+                    ),
+                  );
                 } finally {
                   setSaving(false);
                 }
               }}
               className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium !text-white hover:bg-slate-700 disabled:opacity-60"
             >
-              {saving ? "Creating..." : "Create Listing"}
+              {saving ? (isEditMode ? "Saving..." : "Creating...") : isEditMode ? "Save Changes" : "Create Listing"}
             </button>
           </div>
         </section>

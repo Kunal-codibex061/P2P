@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { DateRangeSelectorModal } from "@/components/date-range-selector-modal";
 import { formatIntentDate } from "@/lib/rental-intent";
+import { cn } from "@/lib/utils";
 
 export interface RequestFormPayload {
   startDate: string;
@@ -33,6 +34,11 @@ export function RequestModal({ open, onClose, onSubmit, initialDates }: RequestM
   });
   const [submitting, setSubmitting] = useState(false);
   const [dateModalOpen, setDateModalOpen] = useState(false);
+  const [errors, setErrors] = useState<{
+    dates?: boolean;
+    purpose?: boolean;
+    message?: boolean;
+  }>({});
 
   if (!open) return null;
 
@@ -44,12 +50,22 @@ export function RequestModal({ open, onClose, onSubmit, initialDates }: RequestM
           Share dates and purpose so the lender can review quickly.
         </p>
 
-        <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium text-slate-600">Rental Dates</p>
+        <div
+          className={cn(
+            "mt-5 space-y-2 rounded-2xl border border-transparent p-2",
+            errors.dates && "border-rose-300 bg-rose-50/70",
+          )}
+        >
+          <p className={cn("text-xs font-medium text-slate-600", errors.dates && "text-rose-700")}>
+            Rental Dates *
+          </p>
           <button
             type="button"
             onClick={() => setDateModalOpen(true)}
-            className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-lime-300 hover:bg-lime-50"
+            className={cn(
+              "flex w-full items-center justify-between rounded-2xl border bg-white px-4 py-3 text-left transition hover:border-lime-300 hover:bg-lime-50",
+              errors.dates ? "border-rose-300" : "border-slate-200",
+            )}
           >
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
               <CalendarDays className="h-4 w-4 text-slate-500" />
@@ -59,16 +75,38 @@ export function RequestModal({ open, onClose, onSubmit, initialDates }: RequestM
             </span>
             <span className="text-xs font-bold text-blue-700">Edit</span>
           </button>
+          {errors.dates ? (
+            <p className="text-xs font-medium text-rose-700">Please select both delivery and pickup dates.</p>
+          ) : null}
         </div>
 
-        <div className="mt-3 space-y-1">
-          <label className="text-xs font-medium text-slate-600">Purpose</label>
+        <div
+          className={cn(
+            "mt-3 space-y-1 rounded-2xl border border-transparent p-2",
+            errors.purpose && "border-rose-300 bg-rose-50/70",
+          )}
+        >
+          <label className={cn("text-xs font-medium text-slate-600", errors.purpose && "text-rose-700")}>
+            Purpose *
+          </label>
           <input
             value={form.purpose}
-            onChange={(event) => setForm((prev) => ({ ...prev, purpose: event.target.value }))}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setForm((prev) => ({ ...prev, purpose: nextValue }));
+              if (nextValue.trim().length > 0) {
+                setErrors((prev) => ({ ...prev, purpose: false }));
+              }
+            }}
+            className={cn(
+              "w-full rounded-xl border px-3 py-2 text-sm",
+              errors.purpose ? "border-rose-300" : "border-slate-200",
+            )}
             placeholder="Weekend shoot, house party, WFH setup..."
           />
+          {errors.purpose ? (
+            <p className="text-xs font-medium text-rose-700">Tell the owner why you need this item.</p>
+          ) : null}
         </div>
 
         <div className="mt-3 space-y-1">
@@ -91,14 +129,35 @@ export function RequestModal({ open, onClose, onSubmit, initialDates }: RequestM
           </div>
         </div>
 
-        <div className="mt-3 space-y-1">
-          <label className="text-xs font-medium text-slate-600">Message</label>
+        <div
+          className={cn(
+            "mt-3 space-y-1 rounded-2xl border border-transparent p-2",
+            errors.message && "border-rose-300 bg-rose-50/70",
+          )}
+        >
+          <label className={cn("text-xs font-medium text-slate-600", errors.message && "text-rose-700")}>
+            Message *
+          </label>
           <textarea
             value={form.message}
-            onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
-            className="h-24 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setForm((prev) => ({ ...prev, message: nextValue }));
+              if (nextValue.trim().length > 0) {
+                setErrors((prev) => ({ ...prev, message: false }));
+              }
+            }}
+            className={cn(
+              "h-24 w-full rounded-xl border px-3 py-2 text-sm",
+              errors.message ? "border-rose-300" : "border-slate-200",
+            )}
             placeholder="Hi, I need this for 3 days and can share ID proof at pickup."
           />
+          {errors.message ? (
+            <p className="text-xs font-medium text-rose-700">
+              Add a short message so the owner can respond quickly.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-5 flex items-center justify-end gap-2">
@@ -111,11 +170,25 @@ export function RequestModal({ open, onClose, onSubmit, initialDates }: RequestM
           </button>
           <button
             type="button"
-            disabled={submitting || !form.startDate || !form.endDate}
+            disabled={submitting}
             onClick={async () => {
+              const validationErrors = {
+                dates: !(form.startDate && form.endDate),
+                purpose: form.purpose.trim().length === 0,
+                message: form.message.trim().length === 0,
+              };
+              setErrors(validationErrors);
+              if (validationErrors.dates || validationErrors.purpose || validationErrors.message) {
+                return;
+              }
+
               setSubmitting(true);
               try {
-                await onSubmit(form);
+                await onSubmit({
+                  ...form,
+                  purpose: form.purpose.trim(),
+                  message: form.message.trim(),
+                });
                 onClose();
               } finally {
                 setSubmitting(false);
@@ -133,7 +206,10 @@ export function RequestModal({ open, onClose, onSubmit, initialDates }: RequestM
           startDate={form.startDate}
           endDate={form.endDate}
           onClose={() => setDateModalOpen(false)}
-          onApply={(range) => setForm((prev) => ({ ...prev, ...range }))}
+          onApply={(range) => {
+            setForm((prev) => ({ ...prev, ...range }));
+            setErrors((prev) => ({ ...prev, dates: false }));
+          }}
         />
       </div>
     </div>

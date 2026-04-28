@@ -5,6 +5,12 @@ const userSchema = new Schema(
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    firebaseUid: { type: String, trim: true, unique: true, sparse: true, default: null },
+    authProvider: {
+      type: String,
+      enum: ["firebase_google", "firebase_phone", "firebase_unknown", "legacy_password"],
+      default: "firebase_unknown",
+    },
     passwordHash: { type: String, trim: true, default: null },
     passwordUpdatedAt: { type: Date, default: null },
     profilePhoto: { type: String, required: true },

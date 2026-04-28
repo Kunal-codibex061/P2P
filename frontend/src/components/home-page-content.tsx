@@ -21,6 +21,7 @@ import type { Category, Listing } from "@/types/domain";
 
 const INITIAL_VISIBLE_LISTINGS = 12;
 const LOAD_MORE_LISTINGS_STEP = 12;
+const CATEGORY_RAIL_VISIBLE_ITEMS = 10;
 
 function FreshListingsGrid({ listings }: { listings: Listing[] }) {
   const [visibleListingsCount, setVisibleListingsCount] = useState(INITIAL_VISIBLE_LISTINGS);
@@ -62,6 +63,54 @@ function FreshListingsGrid({ listings }: { listings: Listing[] }) {
         </div>
       ) : null}
     </>
+  );
+}
+
+function CategoryListingRail({
+  category,
+  listings,
+  selectedCity,
+}: {
+  category: Category;
+  listings: Listing[];
+  selectedCity: string;
+}) {
+  const href = selectedCity
+    ? `/categories/${category.key}?city=${encodeURIComponent(selectedCity)}`
+    : `/categories/${category.key}`;
+
+  return (
+    <section className="space-y-3">
+      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
+              Category Spotlight
+            </p>
+            <h3 className="mt-1 text-xl font-black text-slate-950">{category.label}</h3>
+            <p className="mt-1 text-xs font-medium text-slate-500">
+              {selectedCity ? `Top picks in ${selectedCity}` : "Top picks near you"}
+            </p>
+          </div>
+          <Link
+            href={href}
+            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+          >
+            View category
+          </Link>
+        </div>
+
+        <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max items-stretch gap-3 sm:gap-4">
+            {listings.slice(0, CATEGORY_RAIL_VISIBLE_ITEMS).map((listing) => (
+              <div key={listing._id} className="w-[292px] shrink-0">
+                <ListingCard listing={listing} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -110,15 +159,28 @@ export function HomePageContent() {
     },
   });
 
-  const categories = categoriesQuery.data?.data.categories || [];
+  const categories = useMemo(
+    () => categoriesQuery.data?.data.categories || [],
+    [categoriesQuery.data?.data.categories],
+  );
   const listings = useMemo(() => listingsQuery.data?.data ?? [], [listingsQuery.data?.data]);
+  const categoryWiseListings = useMemo(
+    () =>
+      categories
+        .map((category) => ({
+          category,
+          listings: listings.filter((listing) => listing.category === category.label),
+        }))
+        .filter((entry) => entry.listings.length > 0),
+    [categories, listings],
+  );
 
   return (
     <div className="flex w-full flex-col gap-8 overflow-hidden">
       <LandingHero />
 
       <AnimatedSection delay={0.05}>
-        <CategoryShowcase categories={categories} />
+        <CategoryShowcase categories={categories} selectedCity={selectedCity} />
       </AnimatedSection>
 
       <section className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-8">
@@ -150,6 +212,30 @@ export function HomePageContent() {
           <FreshListingsGrid key={selectedCity || "all-locations"} listings={listings} />
         )}
       </section>
+
+      {!listingsQuery.isLoading && categoryWiseListings.length > 0 ? (
+        <section className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-10">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
+              Curated Collections
+            </p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">Explore By Category</h2>
+            <p className="mt-1 text-sm font-medium text-slate-600">
+              Handpicked listings arranged category-wise for faster browsing.
+            </p>
+          </div>
+
+          {categoryWiseListings.map((entry) => (
+            <AnimatedSection key={entry.category.key} delay={0.02}>
+              <CategoryListingRail
+                category={entry.category}
+                listings={entry.listings}
+                selectedCity={selectedCity}
+              />
+            </AnimatedSection>
+          ))}
+        </section>
+      ) : null}
     </div>
   );
 }

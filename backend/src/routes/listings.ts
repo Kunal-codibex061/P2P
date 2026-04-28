@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Listing, RentalRequest, User } from "../models";
+import { Conversation, Listing, OpenRequestResponse, RentalRequest, User } from "../models";
 import { requireAuth } from "../middleware/auth";
 import { asyncHandler } from "../utils/http";
+import { createNotifications } from "../utils/notifications";
 
 const router = Router();
 
@@ -41,7 +42,7 @@ function normalizePricingOptions(options: Array<{ unit: "day" | "week" | "month"
 }
 
 interface ListingQueryFilters {
-  category?: string;
+  categories: string[];
   city?: string;
   locality?: string;
   minPrice?: number;
@@ -126,7 +127,7 @@ function parseListingQueryFilters(query: Record<string, unknown>): ListingQueryF
   });
 
   return {
-    category: firstQueryValue(query.category),
+    categories: allQueryValues(query.category),
     city: firstQueryValue(query.city),
     locality: firstQueryValue(query.locality),
     minPrice: parseNumber(query.minPrice),
@@ -149,7 +150,11 @@ function parseListingQueryFilters(query: Record<string, unknown>): ListingQueryF
 function buildListingsMongoQuery(filters: ListingQueryFilters): Record<string, unknown> {
   const query: Record<string, unknown> = {};
 
-  if (filters.category) query.category = filters.category;
+  if (filters.categories.length === 1) {
+    query.category = filters.categories[0];
+  } else if (filters.categories.length > 1) {
+    query.category = { $in: filters.categories };
+  }
   if (filters.city) query.city = filters.city;
   if (filters.locality) query.locality = filters.locality;
   if (filters.availability) query.availabilityStatus = filters.availability;
@@ -216,6 +221,36 @@ function incrementBucket(buckets: Map<string, number>, rawValue: unknown) {
   buckets.set(value, (buckets.get(value) || 0) + 1);
 }
 
+function normalizeListingPhotoUrls<T extends { photos?: string[] }>(
+  listing: T,
+  baseUrl: string,
+): T {
+  if (!Array.isArray(listing.photos) || listing.photos.length === 0) return listing;
+  const normalized = listing.photos.map((photo) => {
+    if (typeof photo !== "string") return photo;
+    if (
+      photo.startsWith("http://localhost:8080") ||
+      photo.startsWith("https://localhost:8080") ||
+      photo.startsWith("http://127.0.0.1:8080") ||
+      photo.startsWith("https://127.0.0.1:8080")
+    ) {
+      return photo.replace(/^https?:\/\/(localhost|127\.0\.0\.1):8080/, baseUrl);
+    }
+    return photo;
+  });
+  return { ...listing, photos: normalized };
+}
+
+function resolvePublicBaseUrl(req: { protocol: string; get: (key: string) => string | undefined }) {
+  const host = req.get("host");
+  const forwardedProto = req
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim();
+  const protocol = forwardedProto || req.protocol;
+  return `${protocol}://${host}`;
+}
+
 router.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -228,7 +263,8 @@ router.get(
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json({ data: listings });
+    const baseUrl = resolvePublicBaseUrl(req);
+    res.json({ data: listings.map((listing) => normalizeListingPhotoUrls(listing, baseUrl)) });
   }),
 );
 
@@ -315,7 +351,8 @@ router.get(
     if (!listing) {
       return res.status(404).json({ message: "Listing not found." });
     }
-    return res.json({ data: listing });
+    const baseUrl = resolvePublicBaseUrl(req);
+    return res.json({ data: normalizeListingPhotoUrls(listing, baseUrl) });
   }),
 );
 
@@ -375,9 +412,111 @@ router.put(
       if (!payload.rentPrice) payload.rentPrice = normalizedPricingOptions[0].price;
     }
 
+    const previousAvailabilityStatus = listing.availabilityStatus;
     Object.assign(listing, payload);
     await listing.save();
+
+    if (payload.availabilityStatus && payload.availabilityStatus !== previousAvailabilityStatus) {
+      const relatedRequests = await RentalRequest.find({
+        listingId: listing._id,
+        status: { $nin: ["completed", "cancelled", "rejected"] },
+      })
+        .select("renterId lenderId")
+        .lean();
+      const participants = Array.from(
+        new Set(
+          relatedRequests.flatMap((request) => [
+            String(request.renterId || ""),
+            String(request.lenderId || ""),
+          ]),
+        ),
+      ).filter((id) => id && id !== req.user?._id);
+
+      await createNotifications(
+        participants.map((userId) => ({
+          userId,
+          actorId: req.user?._id,
+          type: "listing_status_changed",
+          title: "Listing status changed",
+          message: `${listing.title} is now ${payload.availabilityStatus?.replace("_", " ")}.`,
+          link: `/listings/${listing._id}`,
+          metadata: {
+            listingId: String(listing._id),
+            availabilityStatus: payload.availabilityStatus,
+          },
+        })),
+      );
+    }
+
     return res.json({ data: listing });
+  }),
+);
+
+router.delete(
+  "/:id",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const listing = await Listing.findById(req.params.id).lean();
+    if (!listing) {
+      return res.status(404).json({ message: "Listing not found." });
+    }
+
+    const isOwner = String(listing.ownerId) === req.user?._id;
+    const isAdmin = req.user?.roleTags.includes("admin");
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "You can only delete your own listing." });
+    }
+
+    const hasActiveBooking = await RentalRequest.exists({
+      listingId: listing._id,
+      status: { $in: ["accepted", "confirmed", "active", "return_pending"] },
+    });
+    if (hasActiveBooking) {
+      return res.status(409).json({
+        message: "You cannot delete this listing while an active booking is running.",
+      });
+    }
+
+    const relatedRequests = await RentalRequest.find({ listingId: listing._id })
+      .select("_id renterId lenderId status")
+      .lean();
+
+    const relatedRequestIds = relatedRequests.map((request) => request._id);
+    if (relatedRequestIds.length > 0) {
+      await Conversation.deleteMany({
+        $or: [{ requestId: { $in: relatedRequestIds } }, { listingId: listing._id }],
+      });
+      await RentalRequest.deleteMany({ listingId: listing._id });
+    } else {
+      await Conversation.deleteMany({ listingId: listing._id });
+    }
+    await OpenRequestResponse.deleteMany({ listingId: listing._id });
+    await Listing.deleteOne({ _id: listing._id });
+
+    const participants = Array.from(
+      new Set(
+        relatedRequests.flatMap((request) => [
+          String(request.renterId || ""),
+          String(request.lenderId || ""),
+        ]),
+      ),
+    ).filter((id) => id && id !== req.user?._id);
+
+    await createNotifications(
+      participants.map((userId) => ({
+        userId,
+        actorId: req.user?._id,
+        type: "listing_deleted",
+        title: "Listing removed",
+        message: `${listing.title} is no longer available.`,
+        link: "/dashboard/renter",
+        metadata: {
+          listingId: String(listing._id),
+        },
+      })),
+    );
+
+    return res.json({ message: "Listing deleted successfully." });
   }),
 );
 

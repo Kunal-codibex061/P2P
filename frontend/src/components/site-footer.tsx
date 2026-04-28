@@ -14,7 +14,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white/95">
       <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-sm text-slate-600">
-        <p className="text-xs text-slate-500">© {new Date().getFullYear()} RENTeasy</p>
+        <p className="text-xs text-slate-500">© {new Date().getFullYear()} RentEasy</p>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {footerLinks.map((link) => (
             <Link

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LifecycleStepper } from "@/components/ui/lifecycle-stepper";
 import { SafetyBanner } from "@/components/ui/safety-banner";
@@ -56,6 +56,9 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
   const request = selectedConversation?.requestId as RentalRequest | undefined;
   const itemRequest = selectedConversation?.itemRequestId as ItemRequest | undefined;
   const listing = selectedConversation?.listingId as Listing | undefined;
+  const listingOwnerId =
+    listing && typeof listing.ownerId === "object" ? listing.ownerId?._id : (listing?.ownerId as string | undefined);
+  const isListingOwner = Boolean(user?._id && listingOwnerId && user._id === listingOwnerId);
 
   useEffect(() => {
     if (!token || !user?._id || typeof window === "undefined") return;
@@ -104,6 +107,19 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
         queryClient.invalidateQueries({ queryKey: ["conversations", user?._id] }),
       ]);
       setDraft("");
+    },
+  });
+
+  const updateListingStatus = useMutation({
+    mutationFn: async (nextStatus: Listing["availabilityStatus"]) => {
+      if (!listing?._id) return;
+      await api.put(`/api/listings/${listing._id}`, { availabilityStatus: nextStatus }, token);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["conversation-detail", selectedConversationId] }),
+        queryClient.invalidateQueries({ queryKey: ["listing", listing?._id] }),
+      ]);
     },
   });
 
@@ -193,14 +209,39 @@ export function ChatScreen({ initialConversationId }: { initialConversationId?: 
                       </p>
                     ) : null}
                   </div>
-                  {listing?._id ? (
-                    <Link
-                      href={`/listings/${listing._id}`}
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      View Listing
-                    </Link>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isListingOwner && listing?._id ? (
+                      <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700">
+                        <span className="font-semibold text-slate-700">Item status</span>
+                        <select
+                          value={listing.availabilityStatus}
+                          onChange={(event) =>
+                            updateListingStatus.mutate(
+                              event.target.value as Listing["availabilityStatus"],
+                            )
+                          }
+                          disabled={updateListingStatus.isPending}
+                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                        >
+                          <option value="available">Available</option>
+                          <option value="unavailable">Unavailable</option>
+                          <option value="rented">Rented</option>
+                        </select>
+                        {updateListingStatus.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-500" />
+                        ) : null}
+                      </label>
+                    ) : null}
+
+                    {listing?._id ? (
+                      <Link
+                        href={`/listings/${listing._id}`}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                      >
+                        View Listing
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-xl bg-slate-50 p-2 text-sm">

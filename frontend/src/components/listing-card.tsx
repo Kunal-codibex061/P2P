@@ -32,11 +32,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <h3 className="line-clamp-2 text-base font-semibold text-slate-900">{listing.title}</h3>
-          <div className="text-right">
-            <p className="text-base font-bold text-slate-900">
+          <div className="rounded-xl border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-right">
+            <p className="text-base font-black text-blue-700">
               {formatCurrency(listing.rentPrice)}
             </p>
-            <p className="text-xs text-slate-500">per {listing.rentUnit}</p>
+            <p className="text-xs font-semibold text-blue-700/80">per {listing.rentUnit}</p>
           </div>
         </div>
 

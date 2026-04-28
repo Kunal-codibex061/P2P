@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RENTeasy | Trusted P2P Rentals",
+  title: "RentEasy | Trusted P2P Rentals",
   description: "Rent big useful things from verified people near you.",
 };
 

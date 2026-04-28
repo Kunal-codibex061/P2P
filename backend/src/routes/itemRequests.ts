@@ -10,6 +10,7 @@ import {
 import { requireAuth } from "../middleware/auth";
 import { canTransitionItemRequestStatus } from "../utils/itemRequestStatusMachine";
 import { asyncHandler } from "../utils/http";
+import { createNotification } from "../utils/notifications";
 import type { ItemRequestStatus } from "../types";
 
 const router = Router();
@@ -328,6 +329,24 @@ router.put(
     itemRequest.status = status;
     await itemRequest.save();
 
+    if (itemRequest.lenderId) {
+      const counterpartUserId = isRequester
+        ? String(itemRequest.lenderId)
+        : String(itemRequest.requesterId);
+      await createNotification({
+        userId: counterpartUserId,
+        actorId: req.user?._id,
+        type: "item_request_status_changed",
+        title: "Request status updated",
+        message: `Open request status changed to ${status.replace("_", " ")}.`,
+        link: `/requested-items/${itemRequest._id}`,
+        metadata: {
+          itemRequestId: String(itemRequest._id),
+          status,
+        },
+      });
+    }
+
     return res.json({ data: itemRequest });
   }),
 );
@@ -489,6 +508,19 @@ router.post(
     }
     itemRequest.lenderId = response.lenderId;
     await itemRequest.save();
+
+    await createNotification({
+      userId: String(itemRequest.requesterId),
+      actorId: req.user?._id,
+      type: "item_request_response",
+      title: "You got a new response",
+      message: `A lender responded with "${listing.title}" for your request.`,
+      link: `/chat/${conversation._id}`,
+      metadata: {
+        itemRequestId: String(itemRequest._id),
+        listingId: String(listing._id),
+      },
+    });
 
     return res.status(201).json({
       data: {

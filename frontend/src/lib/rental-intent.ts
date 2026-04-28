@@ -10,7 +10,7 @@ export const SEARCH_CITY_STORAGE_KEY = "rentora-search-city";
 export const SEARCH_CITY_CHANGE_EVENT = "rentora-search-city-changed";
 export const RENTAL_INTENT_CHANGE_EVENT = "renteasy-rental-intent-changed";
 
-export const locationOptions = ["", "Bengaluru", "Mumbai", "Delhi", "Pune"];
+export const locationOptions = ["", "Delhi"];
 
 function clean(value?: string | null) {
   const next = value?.trim();
